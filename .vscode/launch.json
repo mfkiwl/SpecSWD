@@ -5,13 +5,14 @@
             "name": "(lldb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bin/surfvti_ac",
-            "args": ["model.txt","0.01","0.5","100"],
+            "program": "${workspaceFolder}/bin/surflove",
+            "args": ["model.txt","1","1","1"],
+            //"args": ["model.txt.love"],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/example/ac",
+            "cwd": "${workspaceFolder}/example/love",
             "environment": [],
             "externalConsole": false,
-            "MIMode": "lldb"
+            "MIMode": "gdb"
         }
 
     ]

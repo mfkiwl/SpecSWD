@@ -7,25 +7,25 @@ mkdir -p out
 
 sourcedir=`pwd`/../../
 echo $sourcedir
-wavetp=1
 
 # run sem
-time $sourcedir/bin/surfvti model.txt $wavetp 0.01 1 120
+time $sourcedir/bin/surflove model.txt 0.01 1 120
+
 
 # convert database to h5file 
 python $sourcedir/scripts/binary2h5.py out/database.bin out/swd.txt out/kernels.h5
 
-# run benckmark
+# # run benckmark
 \rm -f  *.so bench_cps.py 
 ln -s $sourcedir/lib/cps* . 
 \cp $sourcedir/scripts/bench_cps.py .
 
-python bench_cps.py $wavetp
+python bench_cps.py model.txt.cps 1 
 
 # plot  displ 
-python $sourcedir/scripts/plot_disp.py
+python $sourcedir/scripts/plot_disp.py 5
+ 
+# # plot_kernel.py file period_id mode
+# python plot_kernels.py out/kernels.h5 119 0
 
-# plot_kernel.py file period_id mode
-python plot_kernels.py out/kernels.h5 119 0
-
-\rm -f  *.so bench_cps.py
+# \rm -f  *.so bench_cps.py

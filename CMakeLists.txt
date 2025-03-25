@@ -13,8 +13,8 @@ set(CMAKE_CXX_FLAGS             ${CXXFLAGS})
 ################## dependencies ##################
 # preferred installation prefix of dependencies
 set(EIGEN_INC                 ${EIGEN_INC})
-set(USE_LAPACK             ${USE_LAPACK}) 
-set(BUILD_PYLIB             ${BUILD_PYLIB})
+
+option(BUILD_PYLIB "BUILD_PYLIB" OFF)
 
 
 # set default values
@@ -25,14 +25,13 @@ endif()
 endmacro()
 setDefault(EIGEN_INC   "~/software/eigen-3.4.0")
 setDefault(USE_LAPACK FALSE)
-setDefault(BUILD_PYLIB FALSE)
 
 # project
 project(SWDTTI LANGUAGES CXX Fortran)
 
 # build type 
 set(CMAKE_BUILD_TYPE RELEASE)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_SOURCE_DIR}/build/obj)
 
@@ -42,7 +41,7 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU") 
   set(CMAKE_CXX_FLAGS_RELEASE  "${CMAKE_CXX_FLAGS_RELEASE} -march=native -ffast-math")
   set(CMAKE_Fortran_FLAGS  "${CMAKE_Fortran_FLAGS} -march=native -ffixed-line-length-none")
-  set(CMAKE_CXX_FLAGS_RELEASE  "-O2")
+  set(CMAKE_CXX_FLAGS_RELEASE  "-O0 -D_GLIBCXX_DEBUG")
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   set(CMAKE_CXX_FLAGS_RELEASE  "${CMAKE_CXX_FLAGS_RELEASE} -xHost -DEIGEN_STRONG_INLINE=inline")
   set(CMAKE_Fortran_FLAGS  "${CMAKE_Fortran_FLAGS} -xHost -extend-source")
@@ -58,10 +57,9 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/include/cmake)
 include_directories(${EIGEN_INC})
 
 # lapack
-if(${USE_LAPACK})
-  find_package(LAPACK)
-  set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DEIGEN_USE_LAPACKE")
-endif()
+
+find_package(LAPACK)
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DEIGEN_USE_LAPACKE")
 
 ################# include paths #################
 include_directories(${PROJECT_SOURCE_DIR}/src)
@@ -69,15 +67,15 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 
 # subs
 add_subdirectory(${PROJECT_SOURCE_DIR}/src/shared)
-add_subdirectory(${PROJECT_SOURCE_DIR}/src/vti)
-add_subdirectory(${PROJECT_SOURCE_DIR}/src/tti)
-add_subdirectory(${PROJECT_SOURCE_DIR}/src/multiphysics)
+add_subdirectory(${PROJECT_SOURCE_DIR}/src/solver)
+# add_subdirectory(${PROJECT_SOURCE_DIR}/src/vti)
+# add_subdirectory(${PROJECT_SOURCE_DIR}/src/tti)
+# add_subdirectory(${PROJECT_SOURCE_DIR}/src/multiphysics)
 
 # check build pylib
-if(${BUILD_PYLIB}) 
-  #find_package(pybind11 REQUIRED)
+if(BUILD_PYLIB) 
   find_package(Python COMPONENTS Interpreter Development)
   find_package(pybind11 CONFIG)
   add_subdirectory(src/cps330)
-  add_subdirectory(src/libswd)
+  # add_subdirectory(src/libswd)
 endif()
