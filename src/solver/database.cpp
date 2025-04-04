@@ -1,5 +1,4 @@
 #include "solver/solver.hpp"
-#include "shared/attenuation_table.hpp"
 #include <iostream>
 
 void solve_christoffel(double phi, const float *c21,float &cmin,float &cmax);
@@ -17,8 +16,12 @@ compute_minmax_veloc_(double phi,std::vector<float> &vmin,std::vector<float> &vm
 
         for(int i = istart; i <= iend; i ++) {
             if(SWD_TYPE == 0) { // love wave
-                v0 = std::min(v0,std::min(vsv_[i],vsh_[i]));
-                v1 = std::max(v1,std::max(vsv_[i],vsh_[i]));
+                float vsh = vsh_[i];
+                v0 = std::min(v0,vsh);
+                // if(HAS_ATT) {
+                //     vsh *= 1. + 0.125 / std::pow(QN_[i],2); // correction to second order
+                // }
+                v1 = std::max(v1,vsh);
             }
             else if (SWD_TYPE == 1) { // rayleigh
                 if(is_el_reg[ig]) {
@@ -73,18 +76,14 @@ create_db_love_(double freq)
         xL[i] = std::pow(xL[i],2) * xrho_el[i];
     }
 
+    // Q model
+    nQmodel_ani = 0;
     if(HAS_ATT) {
         // interpolate Q model
         xQL.resize(size); xQN.resize(size);
-        this -> interp_model(&Qvsv_[0],el_elmnts,xQL);
-        this -> interp_model(&Qvsh_[0],el_elmnts,xQN);
-
-        // allocate complex modulus
-        cxL.resize(size); cxN.resize(size);
-        for(size_t i = 0; i < size; i ++) {
-            cxL[i] = xL[i] * get_sls_modulus_factor(freq,xQL[i]);
-            cxN[i] = xN[i] * get_sls_modulus_factor(freq,xQN[i]);
-        }
+        this -> interp_model(&QL_[0],el_elmnts,xQL);
+        this -> interp_model(&QN_[0],el_elmnts,xQN);
+        nQmodel_ani = 2;
     }
 }
 
@@ -108,22 +107,20 @@ create_db_rayl_(double freq)
 
     // temp arrays
     std::vector<double> xtemp_el(size_el);
-    std::vector<double> xtemp_ac(size_ac);
     xA.resize(size_el); xL.resize(size_el);
-    xC.resize(size_el); xF.resize(size_el);
+    xC.resize(size_el); xeta.resize(size_el);
     xkappa_ac.resize(size_ac);
 
     // interpolate parameters in elastic domain
     this -> interp_model(&vph_[0],el_elmnts,xA);
     this -> interp_model(&vpv_[0],el_elmnts,xC);
     this -> interp_model(&vsv_[0],el_elmnts,xL);
-    this -> interp_model(&eta_[0],el_elmnts,xF);
+    this -> interp_model(&eta_[0],el_elmnts,xeta);
     for(size_t i = 0; i < size_el; i ++) {
         double r = xrho_el[i];
         xA[i] = xA[i] * xA[i] * r;
         xC[i] = xC[i] * xC[i] * r;
         xL[i] = xL[i] * xL[i] * r;
-        xF[i] = xF[i] * (xA[i] - 2. * xL[i]);
     }
 
     // acoustic domain
@@ -131,26 +128,18 @@ create_db_rayl_(double freq)
     for(size_t i = 0; i < size_ac; i ++) {
         xkappa_ac[i] = xkappa_ac[i] * xkappa_ac[i] * xrho_ac[i];
     }
+
+    nQmodel_ani = 0;
     if(HAS_ATT) {
         // allocate space for  Q
         xQL.resize(size_el); xQA.resize(size_el);
         xQC.resize(size_el); xQk_ac.resize(size_ac);
-        this -> interp_model(Qvsv_.data(),el_elmnts,xQL);
-        this -> interp_model(Qvpv_.data(),el_elmnts,xQC);
-        this -> interp_model(Qvph_.data(),el_elmnts,xQA);
-        this -> interp_model(Qvpv_.data(),ac_elmnts,xQk_ac);
+        this -> interp_model(QL_.data(),el_elmnts,xQL);
+        this -> interp_model(QC_.data(),el_elmnts,xQC);
+        this -> interp_model(QA_.data(),el_elmnts,xQA);
+        this -> interp_model(QC_.data(),ac_elmnts,xQk_ac);
 
-        // allocate complex modulus
-        cxL.resize(size_el); cxA.resize(size_el);
-        cxC.resize(size_el); cxkappa_ac.resize(size_ac);
-        for(size_t i = 0; i < size_el; i ++) {
-            cxA[i] = xA[i] * get_sls_modulus_factor(freq,xQA[i]);
-            cxC[i] = xC[i] * get_sls_modulus_factor(freq,xQC[i]);
-            cxL[i] = xL[i] * get_sls_modulus_factor(freq,xQL[i]);
-        }
-        for(size_t i = 0; i < size_ac; i ++) {
-            cxkappa_ac[i] = xkappa_ac[i] * get_sls_modulus_factor(freq,xQk_ac[i]);
-        }
+        nQmodel_ani = 3;
     }
 }
 

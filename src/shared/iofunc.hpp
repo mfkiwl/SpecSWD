@@ -1,3 +1,6 @@
+#ifndef SPECSWD_IOFUNC_H_
+#define SPECSWD_IOFUNC_H_
+
 #include <iostream>
 
 inline void __myfwrite(const void *__ptr, size_t __size, size_t __nitems, FILE *__stream)
@@ -26,3 +29,5 @@ write_binary_f(FILE *fp, const T *data, size_t n)
     // integer back
     __myfwrite(&size,sizeof(int),1,fp); 
 }
+
+#endif

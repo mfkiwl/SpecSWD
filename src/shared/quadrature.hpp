@@ -1,5 +1,5 @@
-#ifndef SWD_QUADRATURE
-#define SWD_QUADRATURE
+#ifndef SPECSWD_QUADRATURE_H_
+#define SPECSWD_QUADRATURE_H_
 #include <cmath>
 
 //GLL

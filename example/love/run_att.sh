@@ -9,14 +9,14 @@ sourcedir=`pwd`/../../
 echo $sourcedir
 
 # run sem
-time $sourcedir/bin/surflove model.txt 0.01 1 120
-
+time $sourcedir/bin/surflove model.txt 0.01 1 500
+#time $sourcedir/bin/surflove model.txt 0.01 1 2
 
 # convert database to h5file 
 python $sourcedir/scripts/binary2h5.py out/database.bin out/swd.txt out/kernels.h5
 
 # plot  displ 
-python compute_group.py
+python benchmark.py 19
  
 # # plot_kernel.py file period_id mode
 # python plot_kernels.py out/kernels.h5 119 0

@@ -1,25 +1,27 @@
 #include "solver/solver.hpp"
-#include "GQTable.hpp"
-#include "shared/attenuation_table.hpp"
+#include "solver/frechet.hpp"
+
 #include <Eigen/Core>
 
 typedef std::complex<double> dcmplx;
+
 
 /**
  * @brief compute group velocity and kernels for love wave phase velocity, elastic case
  * 
  * @param freq current frequency
  * @param c  current phase velocity
- * @param displ eigen function, shape(nglob)
+ * @param displ eigen function, shape(nglob_el)
  * @param frekl Frechet kernels (N/L/rho) for elastic parameters, shape(3,nspec*NGLL + NGRL) 
  * @return double u group velocity
  */
 double SolverSEM::
 compute_love_kl(double freq,double c,const double *displ, std::vector<double> &frekl) const
 {
-    Eigen::Map<const Eigen::ArrayXd> x(displ,nglob);
-    Eigen::Map<const Eigen::ArrayXd> K(Kmat.data(),nglob);
-    Eigen::Map<const Eigen::ArrayXd> M(Mmat.data(),nglob);
+    int ng = nglob_el;
+    Eigen::Map<const Eigen::ArrayXd> x(displ,ng);
+    Eigen::Map<const Eigen::ArrayXd> K(Kmat.data(),ng);
+    Eigen::Map<const Eigen::ArrayXd> M(Mmat.data(),ng);
 
     // group velocity
     // u = x^T K x / (c x^T M x)
@@ -27,86 +29,28 @@ compute_love_kl(double freq,double c,const double *displ, std::vector<double> &f
 
     // coefs for phase kernel
     double om = 2 * M_PI * freq;
-    double k = om / c;
-    double coef = - 0.5 * std::pow(c,3) / std::pow(om,2) / (x * K * x).sum();
+    double coef = -0.5 * std::pow(c,3) / std::pow(om,2) / (x * K * x).sum();
 
     // allocate phase velocity kernels
-    using namespace GQTable;
     int size = ibool_el.size();
-    frekl.resize(3*size); // N/L/rho
-    auto *N_kl = &frekl[0];
-    auto *L_kl = &frekl[xrho_el.size()];
-    auto *rho_kl = &frekl[xrho_el.size() * 2];
-
-    // loop every element to compute kenrels
-    std::array<double,NGRL> W;
-    for(int ispec = 0; ispec < nspec + 1; ispec ++) {
-        const double *hp = &hprime[0];
-        const double *w = &wgll[0];    
-        double J = jaco[ispec]; // jacobians in this layers
-        int NGL = NGLL;
-        int id0 = ispec * NGLL;
-
-        // GRL layer
-        if(ispec == nspec) {
-            hp = &hprime_grl[0];
-            w = &wgrl[0];
-            NGL = NGRL;
-        }
-
-        // cache displ in a element
-        for(int i = 0; i < NGL; i ++) {
-            int id = id0 + i;
-            int iglob = ibool[id];
-            W[i] = displ[iglob];
-        }
-
-        // compute kernels
-        for(int m = 0; m < NGL; m ++) {
-            int id = id0 + m;
-            rho_kl[id] = w[m] * J * std::pow(om*W[m],2);
-            N_kl[id] = -std::pow(W[m],2) * w[m] * J;
-            double temp = W[k] / J;
-
-            double s{};
-            for(int i = 0; i < NGL; i ++) {
-                s += hp[m*NGL+i] * W[i];
-            }
-            L_kl[id] = - k * k * s * s * temp; 
-        }
-    }
-
-    // scale all kernels
-    for(int iker = 0; iker < 3; iker ++) {
-        for(int i = 0; i < size; i ++) {
-            frekl[iker*size+i] *= coef;
-        }
-    }
+    frekl.resize(3*size,0); // N/L/rho
+    get_deriv_love_(freq,c,coef,displ,displ,nspec_el,nglob_el,
+                    ibool_el.data(),jaco.data(),
+                    nullptr,nullptr,nullptr,nullptr,
+                    frekl.data(),nullptr);
 
     // return group velocity
     return u;
 }
 
-/**
- * @brief convert d\tilde{c}/dm to dcL/dm, dQiL/dm, where \tilde{c} = c(1 + 1/2 i Qi)
- * @param dcdm, Frechet kernel for complex phase velocity, rst m
- * @param c,Qi phase velocity and phase attenutation
- * @param dcLdm,dQiLdm dc / dm and dQi / dm
- */
-static void  
-convert_cQ_kernels(dcmplx &dcdm,double c, double Qi,
-            double &dcLdm,double &dQiLdm)
-{
-    dcLdm = dcdm.real();
-    dQiLdm = (dcdm.imag() * 2. - Qi * dcLdm) / c;
-}
+
 
 /**
  * @brief compute group velocity and kernels for love wave phase velocity, visco-elastic case
  * 
  * @param freq current frequency
  * @param c  current complex phase velocity
- * @param displ eigen function, shape(nglob)
+ * @param displ eigen function, shape(nglob_el)
  * @param frekl_c dRe(c)/d(N/L/QN/QL/rho) shape(5,nspec*NGLL + NGRL) 
  * @param frekl_q d(qi)/d(N/L/QN/QL/rho) shape(5,nspec*NGLL + NGRL) 
  * @return double u group velocity
@@ -116,86 +60,127 @@ compute_love_kl_att(double freq,dcmplx c,const dcmplx *displ,
                     std::vector<double> &frekl_c,
                     std::vector<double> &frekl_q) const
 {
-    Eigen::Map<const Eigen::ArrayXcd> x(displ,nglob);
-    Eigen::Map<const Eigen::ArrayXcd> K(CKmat.data(),nglob);
-    Eigen::Map<const Eigen::ArrayXd> M(Mmat.data(),nglob);
+    int ng = nglob_el;
+    Eigen::Map<const Eigen::ArrayXcd> x(displ,ng);
+    Eigen::Map<const Eigen::ArrayXcd> K(CKmat.data(),ng);
+    Eigen::Map<const Eigen::ArrayXd> M(Mmat.data(),ng);
 
     // group velocity
     dcmplx u = (x * K * x).sum() / (c * (x * M * x).sum());
 
-    // get c_L and Qi_L  c= c_L(1 + i Qi/2)
-    double c_L = c.real();
-    double Qi_L = c.imag() / c_L * 2.;
+    // coefs for phase kernel
+    double om = 2 * M_PI * freq;
+    dcmplx coef = -0.5 * std::pow(c,3) / std::pow(om,2) / (x * K * x).sum();
+
+    // allocate phase velocity kernels
+    int size = ibool_el.size();
+    frekl_c.resize(5*size,0); // dc_L/d(N/L/QN/QL/rho)
+    frekl_q.resize(5*size,0); // d(Qi_L)/d(N/L/QN/QL/rho)
+
+    // get kernels
+    get_deriv_love_(freq,c,coef,displ,displ,nspec_el,nglob_el,ibool_el.data(),
+                    jaco.data(),xN.data(),xL.data(),
+                    xQN.data(),xQL.data(),frekl_c.data(),
+                    frekl_q.data());
+
+    return u;
+}
+
+
+/**
+ * @brief compute group velocity and kernels for love wave
+ * 
+ * @param freq current frequency
+ * @param c  current phase velocity
+ * @param displ eigen function, shape(nglob * 2)
+ * @param frekl Frechet kernels A/C/L/eta/rho_kl kernels for elastic parameters, shape(5,nspec*NGLL + NGRL) 
+ * @return double u group velocity
+ */
+double SolverSEM:: 
+compute_rayl_kl(double freq,double c,const double *displ, 
+                const double *ldispl, std::vector<double> &frekl) const
+{
+    int ng = nglob_el*2 + nglob_ac;
+    typedef Eigen::Matrix<double,-1,-1,Eigen::RowMajor> dmat2;
+    Eigen::Map<const Eigen::VectorXd> x(displ,ng),y(ldispl,ng);
+    Eigen::Map<const dmat2> K(Kmat.data(),ng,ng);
+    Eigen::Map<const Eigen::VectorXd> M(Mmat.data(),ng);
+
+    // group velocity
+    // u = x^T K x / (c x^T M x)
+    double u_nume = (y.transpose() * K * x);
+    double u_deno = c* y.transpose() * M.asDiagonal() * x;
+    double u = u_nume / u_deno;
 
     // coefs for phase kernel
     double om = 2 * M_PI * freq;
-    dcmplx k = om / c;
-    dcmplx coef = - 0.5 * std::pow(c,3) / std::pow(om,2) / (x * K * x).sum();
+    double coef = - 0.5 * std::pow(c,3) / std::pow(om,2) / (y.transpose() * K * x).sum();
 
     // allocate phase velocity kernels
     using namespace GQTable;
-    int size = ibool_el.size();
-    frekl_c.resize(5*size); // dc_L/d(N/L/QN/QL/rho)
-    frekl_q.resize(5*size); // d(Qi_L)/d(N/L/QN/QL/rho)
+    int size = ibool.size();
+    frekl.resize(6*size,0); // A/C/L/eta/kappa_ac/rho_kl
 
-    // loop every element to compute kenrels
-    std::array<dcmplx,NGRL> W;
-    for(int ispec = 0; ispec < nspec + 1; ispec ++) {
-        const double *hp = &hprime[0];
-        const double *w = &wgll[0];    
-        double J = jaco[ispec]; // jacobians in this layers
-        int NGL = NGLL;
-        int id0 = ispec * NGLL;
+    // compute phase kernels
+    get_deriv_rayl_(freq,c,coef,ldispl,displ,nspec_el,nspec_ac,
+                    nspec_el_grl,nspec_ac_grl,nglob_el,nglob_ac,
+                    el_elmnts.data(),ac_elmnts.data(),
+                    ibool_el.data(),ibool_ac.data(),jaco.data(),
+                    xrho_el.data(),xrho_ac.data(),xA.data(),xC.data(),
+                    xL.data(),xeta.data(),xQA.data(),xQC.data(),
+                    xQL.data(),xkappa_ac.data(),xQk_ac.data(),
+                    frekl.data(),nullptr);
 
-        // GRL layer
-        if(ispec == nspec) {
-            hp = &hprime_grl[0];
-            w = &wgrl[0];
-            NGL = NGRL;
-        }
+    return u;
+}
 
-        // cache displ in a element
-        for(int i = 0; i < NGL; i ++) {
-            int id = id0 + i;
-            int iglob = ibool[id];
-            W[i] = displ[iglob];
-        }
 
-        // compute kernels
-        for(int m = 0; m < NGL; m ++) {
-            int id = id0 + m;
-            dcmplx dc_drho = w[m] * J * om * W[m] * W[m];
 
-            // get SLS factor and derivative
-            dcmplx sn,dsdqni; 
-            dcmplx sl,dsdqli;
-            get_sls_Q_derivative(freq,xQN[id],sn,dsdqni);
-            get_sls_Q_derivative(freq,xQL[id],sl,dsdqli);
-            double N = xN[id], L = xL[id];
+/**
+ * @brief compute group velocity and kernels for love wave
+ * 
+ * @param freq current frequency
+ * @param c  current phase velocity
+ * @param displ eigen function, shape(nglob * 2)
+ * @param frekl Frechet kernels A/C/L/eta/rho_kl kernels for elastic parameters, shape(5,nspec*NGLL + NGRL) 
+ * @return double u group velocity
+ */
+dcmplx SolverSEM:: 
+compute_rayl_kl_att(double freq,dcmplx c,const dcmplx *displ, 
+                const dcmplx *ldispl, std::vector<double> &frekl_c,
+                std::vector<double> &frekl_q) const
+{
+    int ng = nglob_el*2 + nglob_ac;
+    typedef Eigen::Matrix<dcmplx,-1,-1,Eigen::RowMajor> dcmat2;
+    Eigen::Map<const Eigen::VectorXcd> x(displ,ng),y(ldispl,ng);
+    Eigen::Map<const dcmat2> K(CKmat.data(),ng,ng);
+    Eigen::Map<const Eigen::VectorXcd> M(CMmat.data(),ng);
 
-            // derivative for N/Qn^{-1}
-            dcmplx dc_dN = -std::pow(W[m],2) * w[m] * J * sn;
-            dcmplx dc_dQni = -std::pow(W[m],2) * w[m] * J * N * dsdqni;
+    // group velocity
+    // u = x^T K x / (c x^T M x)
+    dcmplx u_nume = (y.adjoint() * K * x);
+    dcmplx u_deno = c* y.adjoint() * M.asDiagonal() * x;
+    dcmplx u = u_nume / u_deno;
 
-            dcmplx s{};
-            for(int i = 0; i < NGL; i ++) {
-                s += hp[m*NGL+i] * W[i];
-            }
-            dcmplx dc_dL = - k * k * s * s * W[m] / J * sl; 
-            dcmplx dc_dQli = - k * k * s * s * W[m] / J * L * dsdqli; 
+    // coefs for phase kernel
+    double om = 2 * M_PI * freq;
+    dcmplx coef = - 0.5 * std::pow(c,3) / std::pow(om,2) / (y.adjoint() * K * x).sum();
 
-            // scaling
-            dc_drho *= coef; dc_dL *= coef;
-            dc_dN *= coef; dc_dQni *= coef; dc_dQli *= coef;
+    // allocate phase velocity kernels
+    using namespace GQTable;
+    int size = ibool.size();
+    frekl_c.resize(10*size,0); // A/C/L/eta/kappa_ac/rho_kl
+    frekl_q.resize(10*size,0); // A/C/L/eta/kappa_ac/rho_kl
 
-            // get dcL / dparam and dQi_L / dparam
-            convert_cQ_kernels(dc_dN,c_L,Qi_L,frekl_c[0*size+id],frekl_q[0*size+id]);
-            convert_cQ_kernels(dc_dL,c_L,Qi_L,frekl_c[1*size+id],frekl_q[1*size+id]);
-            convert_cQ_kernels(dc_dQni,c_L,Qi_L,frekl_c[2*size+id],frekl_q[2*size+id]);
-            convert_cQ_kernels(dc_dQli,c_L,Qi_L,frekl_c[3*size+id],frekl_q[3*size+id]);
-            convert_cQ_kernels(dc_drho,c_L,Qi_L,frekl_c[4*size+id],frekl_q[4*size+id]);
-        }
-    }
-
+    // compute phase kernels
+    get_deriv_rayl_(freq,c,coef,ldispl,displ,nspec_el,nspec_ac,
+                    nspec_el_grl,nspec_ac_grl,nglob_el,nglob_ac,
+                    el_elmnts.data(),ac_elmnts.data(),
+                    ibool_el.data(),ibool_ac.data(),jaco.data(),
+                    xrho_el.data(),xrho_ac.data(),xA.data(),xC.data(),
+                    xL.data(),xeta.data(),xQA.data(),xQC.data(),
+                    xQL.data(),xkappa_ac.data(),xQk_ac.data(),
+                    frekl_c.data(),frekl_q.data());
+    
     return u;
 }

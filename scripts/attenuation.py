@@ -66,7 +66,7 @@ def main():
     ##### target Q power law model Q(w) = Q (w / w_ref)^alpha
     alpha = 0.   # 
     om_ref = 1.
-    Q = 200.
+    Q = 20
 
     # SLS q model
     NSLS = 5
@@ -162,11 +162,11 @@ def main():
 
     # plot Q model
     om_plot = np.logspace(np.log10(min_freq*0.01),np.log10(max_freq*100),500) * np.pi * 2 
+    print('optimized y_sls_ref = ',y_opt)
+    print('optimized w_sls_ref = ',w_opt)
     y_opt = y_corrector(y_opt,Q_ref,Q)
     Q_opt = compute_q_sls_model(y_opt,w_opt,om_plot,True)
     Q_pow = compute_q_model(Q,om_plot,alpha,om_ref)
-    print('optimized y_sls = ',y_opt)
-    print('optimized w_sls = ',w_opt)
 
     plt.semilogx(om_plot/(2*np.pi),1./Q_opt,label='1/Q_opt')
     plt.semilogx(om_plot/(2*np.pi),1./Q_pow,label='1/Q_target')

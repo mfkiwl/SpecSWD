@@ -16,11 +16,11 @@ allocate(int n,T &vec1,Args& ...args)
 }
 
 void SolverSEM:: 
-allocate_1D_model(int nz,int swd_type,int has_att)
+allocate_1D_model(int nz0,int swd_type,int has_att)
 {
     // copy value to mesh type 
     SWD_TYPE = swd_type;
-    nz_ = nz;
+    nz_ = nz0;
     HAS_ATT = has_att;
 
     // allocate space
@@ -29,12 +29,12 @@ allocate_1D_model(int nz,int swd_type,int has_att)
     case 0:
         allocate(nz_,vsv_,vsh_,rho_);
         if(HAS_ATT) {
-            allocate(nz_,Qvsh_,Qvsv_);
+            allocate(nz_,QN_,QL_);
         }
         break;
     case 1:
         allocate(nz_,vpv_,vph_,vsv_,rho_,eta_);
-        if(HAS_ATT) allocate(nz_,Qvpv_,Qvph_,Qvsv_);
+        if(HAS_ATT) allocate(nz_,QC_,QA_,QL_);
         break;
     
     case 2:
@@ -132,9 +132,9 @@ read_model_love_(const char *filename)
     for(int i = 0; i < nz_; i ++) {
         std::getline(infile,line);
         std::istringstream info(line);
-        info >> temp >> rho_[i] >> vsv_[i] >> vsh_[i];
+        info >> temp >> rho_[i] >> vsh_[i] >> vsv_[i];
         if(HAS_ATT) {
-            info >> Qvsv_[i] >> Qvsh_[i];
+            info >> QN_[i] >> QL_[i];
         }
         info.clear();
     }
@@ -158,10 +158,10 @@ read_model_rayl_(const char *filename)
         std::getline(infile,line);
         std::istringstream info(line);
         float temp;
-        info >> temp >> rho_[i] >> vpv_[i] >> vph_[i] 
+        info >> temp >> rho_[i] >> vph_[i] >> vpv_[i] 
                >> vsv_[i] >> eta_[i];
         if(HAS_ATT) {
-            info >> Qvpv_[i] >> Qvph_[i] >> Qvsv_[i];
+            info >> QA_[i] >> QC_[i] >> QL_[i];
         }
         info.clear();
     }
@@ -295,11 +295,11 @@ create_model_attributes()
 
                 // check if vpv == vph || Qvpv == Qvph
                 bool flag = vpv_[i] == vph_[i];
-                if(HAS_ATT) flag = flag &(Qvpv_[i] == Qvph_[i]);
+                if(HAS_ATT) flag = flag &(QC_[i] == QA_[i]);
                 if(!flag) {
                     printf("vpv and vph should be same in fluid layers\n");
                     printf("current velocity vpv = %f vph = %f\n",vpv_[i],vph_[i]);
-                    printf("current velocity Qvpv = %f Qvph = %f\n",Qvpv_[i],Qvph_[i]);
+                    printf("current velocity Qvpv = %f Qvph = %f\n",QC_[i],QA_[i]);
                     exit(1);
                 }
             }
@@ -378,12 +378,12 @@ print_model() const
         int iend = region_bdry[ig*2+1];
 
         if(SWD_TYPE == 0) {
-            printf("depth\t rho\t vsv\t vsh (Qvsv Qvsh)\t \n");
+            printf("depth\t rho\t vsh\t vsv (QN QL)\t \n");
             for(int i = istart; i <= iend; i ++) {
                 printf("%f %f %f %f",
-                        depth_[i],rho_[i], vsv_[i],vsh_[i]);
+                        depth_[i],rho_[i], vsh_[i],vsv_[i]);
                 if(HAS_ATT) {
-                    printf(" %f %f\n",Qvsv_[i],Qvsh_[i]);
+                    printf(" %f %f\n",QN_[i],QL_[i]);
                 }
                 else {
                     printf("\n");
@@ -391,12 +391,12 @@ print_model() const
             }
         }
         else if (SWD_TYPE == 1) {
-            printf("depth\t rho\t vpv\t vph\t vsv\t eta (Qvpv Qvph Qvsv)\n");
+            printf("depth\t rho\t vph\t vpv\t vsv\t eta (Qvpv Qvph Qvsv)\n");
             for(int i = istart; i <= iend; i ++) {
                 printf("%f %f %f %f %f",
-                        depth_[i],rho_[i], vpv_[i],vph_[i],vsv_[i]);
+                        depth_[i],rho_[i], vph_[i],vpv_[i],vsv_[i]);
                 if(HAS_ATT) {
-                    printf(" %f %f %f\n",Qvpv_[i],Qvph_[i],Qvsv_[i]);
+                    printf(" %f %f %f\n",QA_[i],QC_[i],QL_[i]);
                 }
                 else {
                     printf("\n");

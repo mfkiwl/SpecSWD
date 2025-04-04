@@ -112,6 +112,12 @@ create_material_info_()
         idx = ibool[ispec * NGLL + NGLL-1];
     }
 
+    // regular boundary condition at infinity
+    // if(nspec_el_grl == 1) {
+    //     nglob_el -= 1;
+    //     ibool_el[nspec_el*NGLL + NGRL-1] = -1;
+    // }
+
     // get nglob_ac for acoustic
     ibool_ac.resize(nspec_ac * NGLL + nspec_ac_grl * NGRL);
     idx = -10;
@@ -192,7 +198,7 @@ create_database(double freq,double phi)
         PHASE_VELOC_MIN = std::min((double)vmin[i],PHASE_VELOC_MIN);
     }
     PHASE_VELOC_MIN *= 0.85;
-
+    
     // loop every region to find best element size
     nspec = 0;
     std::vector<int> nel(nregion_ - 1);
@@ -201,7 +207,7 @@ create_database(double freq,double phi)
         int iend = region_bdry[ig*2+1];
         
         float maxdepth = depth_[iend] - depth_[istart];
-        nel[ig] = 1.5 * (maxdepth *  freq) / vmin[ig];
+        nel[ig] = 1.5 * (maxdepth *  freq) / vmin[ig] + 1;
         if(nel[ig] <=0) nel[ig] = 1;
         nspec += nel[ig];
     }
@@ -254,7 +260,7 @@ create_database(double freq,double phi)
 
     // half space skeleton
     nspec_el_grl = 0; nspec_ac_grl = 0;
-    double scale = PHASE_VELOC_MAX / freq / xgrl[NGRL-1] * 10;  // up to 10 wavelength
+    double scale = PHASE_VELOC_MAX / freq / xgrl[NGRL-1] * 30;  // up to 50 wavelength
     skel[nspec * 2 + 0] = depth_[nz_-1];
     skel[nspec * 2 + 1] = depth_[nz_-1] + xgrl[NGRL-1] * scale;
     iregion_flag[nspec] = nregion_ - 1;

@@ -1,8 +1,7 @@
 # SPECSWD
-**SpecSWD** utilizes spectral element method and quadratic eigenvalue solver to compute visco-elastic surface wave dispersion, eigen function and sensitivity kernels for **general layered models**.
+**SpecSWD** utilizes spectral element method and quadratic eigenvalue solver to compute visco-elastic surface wave dispersion, eigen functions and sensitivity kernels for **general layered models**.
 
-It can handle dispersion values for several type of complex media, such as VTI, full anisotropy, and (visco)acoustic-(visco)elastic coupling and at any frequency, and any mode. And it can support both 1-D 
-1-D model with discontinuities (continous variation in both fluid and elastic domain).
+It can handle dispersion values for several type of complex media, such as VTI, full anisotropy, and (visco)acoustic-(visco)elastic coupling and at any frequency, and any mode. And it can support both 1-D model with discontinuities (continous variation in both fluid and elastic domain).
 
 ## Requirements and Installation
 1. **Compilers:** C++/Fortran compilers which support c++17 (tested on `GCC >=7.5`), `cmake >= 3.12`

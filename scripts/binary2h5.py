@@ -17,6 +17,7 @@ def main():
     fin:FortranFile = FortranFile(binfile,"r")
     SWD_TYPE = fin.read_ints('i4')[0]
     HAS_ATT = fin.read_ints('?')[0]
+    nz = int(fin.read_ints('i4')[0])
     nkers = fin.read_ints('i4')[0]
     ncomps = fin.read_ints('i4')[0]
 
@@ -53,11 +54,12 @@ def main():
             fout[f'{gname}/u'][:] = data1[:,2]
 
     # write kernels
-    fin:FortranFile = FortranFile(binfile,"r")
-    SWD_TYPE = fin.read_ints('i4')[0]
-    HAS_ATT = fin.read_ints('?')[0]
-    nkers = fin.read_ints('i4')[0]
-    ncomps = fin.read_ints('i4')[0]
+    # fin:FortranFile = FortranFile(binfile,"r")
+    # SWD_TYPE = fin.read_ints('i4')[0]
+    # HAS_ATT = fin.read_ints('?')[0]
+    # nz = int(fin.read_ints('i4')[0])
+    # nkers = fin.read_ints('i4')[0]
+    # ncomps = fin.read_ints('i4')[0]
     fout.attrs['HAS_ATT'] = HAS_ATT
     if SWD_TYPE == 0:
         comp_name = ['W']
@@ -66,11 +68,12 @@ def main():
         PTYPE = 'f8'
         if HAS_ATT:
             dname = ['C','Q']
-            kl_name = ['rho','vsv','vsh','Qvsv','Qvsh']
+            #kl_name = ['rho','vsv','vsh','Qvsv','Qvsh']
+            kl_name = ['vsh','vsv','Qvsh','Qvsv','rho']
             PTYPE = 'c16'
         else:
             dname = ['C']
-            kl_name = ['rho','vsv','vsh']
+            kl_name = ['rho','vsh','vsv']
             
     elif SWD_TYPE == 1:
         comp_name = ['U','V']
@@ -80,11 +83,11 @@ def main():
 
         if HAS_ATT:
             dname = ['C','Q']
-            kl_name = ['rho','vpv','vph','vsv','Qvpv','Qvph','Qvsv','eta']
+            kl_name = ['rho','vph','vpv','vsv','eta','Qvph','Qvpv','Qvsv']
             PTYPE = 'c16'
         else:
             dname = ['C']
-            kl_name = ['rho','vpv','vph','vsv','eta']
+            kl_name = ['rho','vph','vpv','vsv','eta']
     else:
         comp_name = ['U','W','V']
         kl_name = ['rho_kl','vpv_kl','vph_kl','vsv_kl','vsh_kl','eta_kl','theta_kl','phi_kl']
@@ -117,11 +120,12 @@ def main():
             # read kernels
             for iname in range(len(dname)):
                 prefix = dname[iname]
-                kernel = fin.read_reals('f8').reshape((nkers,npts))
+                kernel = fin.read_reals('f8').reshape((nkers,nz))
                 for iker in range(nkers):
-                    fout.create_dataset(f"{gname}/{prefix}_{kl_name[iker]}",dtype='f8',shape=(npts))
+                    #print(f"{gname}/{prefix}_{kl_name[iker]}")
+                    fout.create_dataset(f"{gname}/{prefix}_{kl_name[iker]}",dtype='f8',shape=(nz))
                     fout[f"{gname}/{prefix}_{kl_name[iker]}"][:] = kernel[iker,:]
-                
+                    #print(f"{gname}/{prefix}_{kl_name[iker]}")
 
     # close 
     fin.close()

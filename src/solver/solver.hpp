@@ -39,17 +39,16 @@ public:
     int SWD_TYPE; // =0 Love wave, = 1 for Rayleigh = 2 full aniso
     
     // vti media
-    std::vector<double> xA,xC,xL,xF,xN; // shape(nspec_el * NGLL+ nspec_el_grl * NGRL)
+    std::vector<double> xA,xC,xL,xeta,xN; // shape(nspec_el * NGLL+ nspec_el_grl * NGRL)
     std::vector<double> xQA,xQC,xQL,xQN; // shape(nspec_el * NGLL+ nspec_el_grl * NGRL), Q model
-    std::vector<dcmplx> cxA,cxC,cxL,cxF,cxN; // complex modulus
 
     // full anisotropy
+    int nQmodel_ani; // no. of Q used for anisotropy
     std::vector<double> xC21; // shape(21,nspec_el * NGLL+ nspec_el_grl * NGRL)
-    std::vector<double> xQ21; 
+    std::vector<double> xQani; // shape(nQmodel_ani,nspec_el * NGLL+ nspec_el_grl * NGRL)
 
     // fluid vti
     std::vector<double> xkappa_ac,xQk_ac;
-    std::vector<dcmplx> cxkappa_ac,cxQk_ac;
 
     // fluid-elastic boundary
     int nfaces_bdry;
@@ -62,7 +61,7 @@ private:
     int nz_, nregion_;
     std::vector<float> rho_;
     std::vector<float> vpv_,vph_,vsv_,vsh_,eta_;
-    std::vector<float> Qvpv_,Qvph_,Qvsv_,Qvsh_;
+    std::vector<float> QC_,QA_,QL_,QN_;
     std::vector<float> c21_,Qc21_;
     std::vector<float> depth_;
     std::vector<int> region_bdry; // shape(nregion_,2)
@@ -75,8 +74,8 @@ private:
     std::vector<double> Mmat,Emat,Kmat,Hmat;
     std::vector<dcmplx> CMmat,CEmat,CKmat,CHmat;
 
-    // QZ matrix
-    std::vector<float> Qmat_,Zmat_,Smat_,Spmat_; // column major!
+    // QZ matrix all are column major
+    std::vector<double> Qmat_,Zmat_,Smat_,Spmat_; // column major!
     std::vector<dcmplx> cQmat_,cZmat_,cSmat_,cSpmat_;
 
 
@@ -87,8 +86,11 @@ public:
     void create_database(double freq,double phi);
     void print_model() const;
     void print_database() const;
-    void allocate_1D_model(int nz,int swd_type,int has_att);
+    void allocate_1D_model(int nz0,int swd_type,int has_att);
     void create_model_attributes();
+
+    // 1-D model info
+    int tomo_size()const  {return nz_;} 
 
     // eigenfunction
     void compute_slegn(double freq,std::vector<double> &c,
@@ -105,6 +107,15 @@ public:
                         std::vector<dcmplx> &ur,
                         std::vector<dcmplx> &ul,
                         bool save_qz = false);
+    
+    void compute_egn_aniso(double freq,std::vector<double> &c,
+                            std::vector<double> &ur,
+                            std::vector<double> &ul,
+                            bool save_qz = false);
+    void compute_egn_aniso_att(double freq,std::vector<dcmplx> &c,
+                        std::vector<dcmplx> &ur,
+                        std::vector<dcmplx> &ul,
+                        bool save_qz = false);
 
     // group velocity and phase velocity kernels
     double compute_love_kl(double freq,double c,const double *displ, std::vector<double> &frekl) const;
@@ -113,13 +124,24 @@ public:
                                 std::vector<double> &frekl_q) const;
     double compute_rayl_kl(double freq,double c,const double *displ, 
                           const double *ldispl, std::vector<double> &frekl) const;
+    dcmplx compute_rayl_kl_att(double freq,dcmplx c,const dcmplx *displ, 
+                            const dcmplx *ldispl, 
+                            std::vector<double> &frekl_c,
+                            std::vector<double> &frekl_q) const;
+
+    // group velocity kernels
+    void compute_love_group_kl(double freq,double c,const double *displ, std::vector<double> &frekl) const;
 
     void interp_model(const float *param,const std::vector<int> &elmnts,std::vector<double> &md) const;
-    void project_kl(const double *frekl, float *kl_out) const;
+    void project_kl(const double *frekl, double *kl_out) const;
 
     // transformation
-    void egn2displ_love(const double *egn, double * __restrict displ) const;
-    void egn2displ_love_att(const dcmplx *egn, dcmplx * __restrict displ) const;
+    void egn2displ_vti(double freq,double c,const double *egn, 
+                    double * __restrict displ) const;
+    void egn2displ_vti_att(double freq,dcmplx c,const dcmplx *egn,
+                        dcmplx * __restrict disp) const;
+    void egn2displ_aniso(double freq,dcmplx c,double phi,const dcmplx *egn,
+                        dcmplx * __restrict disp) const;
     void transform_kernels(std::vector<double> &frekl) const;
 
 private:
@@ -138,10 +160,12 @@ private:
     void create_db_aniso_(double freq);
 
     // eigenvalue part
-    void prepare_matrices_love_();
-    void prepare_matrices_love_att_();
+    void prepare_matrices_love_(double freq);
+    void prepare_matrices_love_att_(double freq);
     void prepare_matrices_rayl_(double freq);
     void prepare_matrices_rayl_att_(double freq);
+    void prepare_mat_aniso_(double freq,double phi);
+
 };
 
 #endif

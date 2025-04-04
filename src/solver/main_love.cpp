@@ -21,6 +21,7 @@ int main (int argc, char **argv){
     SolverSEM sol;
     sol.read_model(filename);
     sol.create_model_attributes();
+    int nz = sol.tomo_size();
 
     // check if it's love wave
     if(sol.SWD_TYPE != 0) {
@@ -54,6 +55,9 @@ int main (int argc, char **argv){
     // open file to write out data
     FILE *fp = fopen("out/swd.txt","w");
     FILE *fio = fopen("out/database.bin","wb");
+#ifdef SPEC_DEBUG
+    FILE *fdb = fopen("mesh.bin","wb");
+#endif
     for(int it = 0; it < nt; it ++) {
         fprintf(fp,"%g ",1. / freq[it]);
     }
@@ -66,6 +70,7 @@ int main (int argc, char **argv){
     if(sol.HAS_ATT) {
         nkers = 5;
     }
+    write_binary_f(fio,&nz,1);
     write_binary_f(fio,&nkers,1);
     write_binary_f(fio,&ncomp,1);
 
@@ -78,11 +83,23 @@ int main (int argc, char **argv){
         // write coordinates
         write_binary_f(fio,sol.znodes.data(),sol.znodes.size());
 
+#ifdef SPEC_DEBUG
+        // write mesh
+        using namespace GQTable;
+        write_binary_f(fdb,sol.ibool_el.data(),sol.ibool_el.size());
+        write_binary_f(fdb,sol.jaco.data(),sol.jaco.size());
+        write_binary_f(fdb,sol.xN.data(),sol.xN.size());
+        write_binary_f(fdb,sol.xQN.data(),sol.xQN.size());
+        write_binary_f(fdb,wgll.data(),wgll.size());
+        write_binary_f(fdb,wgrl.data(),wgrl.size());
+#endif
+
         // get database dimension
         int ng = sol.nglob_el;
 
         if(!sol.HAS_ATT) {
             std::vector<double> c,egn,u,frekl;
+            std::vector<double> frekl_tomo;
             std::vector<double> displ;
             sol.compute_slegn(freq[it],c,egn,true);
 
@@ -98,17 +115,23 @@ int main (int argc, char **argv){
 
                 // write displ
                 displ.resize(sol.ibool_el.size());
-                sol.egn2displ_love(&egn[ic*ng],displ.data());
+                sol.egn2displ_vti(freq[it],c[ic],&egn[ic*ng],displ.data());
                 write_binary_f(fio,displ.data(),displ.size());
 
-                // write kernels
+                // transform kernels
                 sol.transform_kernels(frekl);
-                write_binary_f(fio,frekl.data(),frekl.size());
+                frekl_tomo.resize(nkers*nz);
+                int npts = sol.ibool_el.size();
+                for(int iker = 0; iker < nkers; iker ++) {
+                    sol.project_kl(&frekl[iker*npts],&frekl_tomo[iker*nz]);
+                }
+                write_binary_f(fio,frekl_tomo.data(),frekl_tomo.size());
             }
         }
         else {
             std::vector<dcmplx> c,egn,legn,u;
             std::vector<double> frekl_c,frekl_q;
+            std::vector<double> frekl_tomo;
             std::vector<dcmplx> displ;
             sol.compute_slegn_att(freq[it],c,egn,true);
             
@@ -125,14 +148,23 @@ int main (int argc, char **argv){
 
                 // write displ
                 displ.resize(sol.ibool_el.size());
-                sol.egn2displ_love_att(&egn[ic*ng],displ.data());
+                sol.egn2displ_vti_att(freq[it],c[ic],&egn[ic*ng],displ.data());
                 write_binary_f(fio,displ.data(),displ.size());
 
                 // write kernels
                 sol.transform_kernels(frekl_c);
                 sol.transform_kernels(frekl_q);
-                write_binary_f(fio,frekl_c.data(),frekl_c.size());
-                write_binary_f(fio,frekl_q.data(),frekl_q.size());
+                frekl_tomo.resize(nkers*nz);
+                int npts = sol.ibool_el.size();
+                for(int iker = 0; iker < nkers; iker ++) {
+                    sol.project_kl(&frekl_c[iker*npts],&frekl_tomo[iker*nz]);
+                }
+                write_binary_f(fio,frekl_tomo.data(),frekl_tomo.size());
+
+                for(int iker = 0; iker < nkers; iker ++) {
+                    sol.project_kl(&frekl_q[iker*npts],&frekl_tomo[iker*nz]);
+                }
+                write_binary_f(fio,frekl_tomo.data(),frekl_tomo.size());
             }
         }
     }
@@ -140,6 +172,10 @@ int main (int argc, char **argv){
     // close file
     fclose(fio);
     fclose(fp);
+    
+#ifdef SPEC_DEBUG
+    fclose(fdb);
+#endif
 
     return 0;
 }
