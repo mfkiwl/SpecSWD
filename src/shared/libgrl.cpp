@@ -47,10 +47,10 @@ laguerre_func(size_t n, double x) {
  * @param xgrl 
  * @param wgrl 
  * @param length size of xgrl
+ * @warning length should <= 30
  */
 void gauss_radau_laguerre(double *xgrl,double *wgrl,size_t length) 
 {
-
     // special length
     if (length == 20) {
         double  xx[20] = {0.,                  0.1836651730961082,  0.6168163821266257,

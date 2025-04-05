@@ -117,6 +117,9 @@ public:
                         std::vector<dcmplx> &ul,
                         bool save_qz = false);
 
+    // group velocity
+    double get_group_vti(double freq,double c,const double *legn,const double *regn) const; 
+
     // group velocity and phase velocity kernels
     double compute_love_kl(double freq,double c,const double *displ, std::vector<double> &frekl) const;
     dcmplx compute_love_kl_att(double freq,dcmplx c,const dcmplx *displ, 

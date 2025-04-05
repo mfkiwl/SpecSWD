@@ -15,6 +15,11 @@ std::array<double,NGRL*NGRL> hprimeT_grl,hprime_grl;
  */
 void initialize()
 {
+
+    // CHECK NGLL and NGRL range 
+    static_assert(NGLL >=5 && NGLL <= 10,"Best NGLL range is [5,10]");
+    static_assert(NGRL >=15 && NGLL <= 30,"Best NGRL range is [15,30]");
+
     // GLL nodes/weights
     gauss_legendre_lobatto(xgll.data(),wgll.data(),NGLL);
 

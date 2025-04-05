@@ -3,8 +3,8 @@
 #include <cmath>
 
 //GLL
-void gauss_legendre_lobatto(double* knots, double* weights, int length);
-void lagrange_poly(double xi,int nctrl,const double *xctrl,
+void gauss_legendre_lobatto(double* knots, double* weights, size_t length);
+void lagrange_poly(double xi,size_t nctrl,const double *xctrl,
                 double *h,double*  hprime);
 
 // GRL

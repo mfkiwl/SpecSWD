@@ -383,7 +383,7 @@ compute_sregn_att(double freq,std::vector<dcmplx> &c,
             (lscmplx*)cZmat_.data(),ng);
 
 
-        memcpy(cSmat_.data(),A.data(),A.size()*sizeof(dcmplx));
-        memcpy(cSpmat_.data(),B.data(),B.size()*sizeof(dcmplx));
+        memcpy(cSmat_.data(),A.data(),A.size()*sizeof(A(0,0)));
+        memcpy(cSpmat_.data(),B.data(),B.size()*sizeof(B(0,0)));
     }
 }

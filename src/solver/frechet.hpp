@@ -11,20 +11,11 @@
  * @param c  complex phase velocity
  * @param dcLdm,dQiLdm dc / dm and dQi / dm
  */
-// static void  
-// get_cQ_kl(std::complex<double> &dcdm,std::complex<double> c,
-//             double &dcLdm,double &dQiLdm)
-// {   
-//     double cl = c.real();
-//     double Qi = 2. * c.imag() / cl;
-//     dcLdm += dcdm.real();
-//     dQiLdm += (dcdm.imag() * 2. - Qi * dcLdm) / cl;
-// }
-
 template <typename T>  void 
 get_cQ_kl(T &dcdm,T c,
           double &dcLdm,double &dQiLdm)
 {   
+    static_assert(std::is_same_v<std::complex<double>,T>);
     double cl = c.real();
     double Qi = 2. * c.imag() / cl;
     dcLdm += dcdm.real();
@@ -207,8 +198,8 @@ get_deriv_rayl_(double freq,T c,T coef,const T *y, const T *x,
         }
 
        // compute kernel
-        T dc_drho, dc_dA, dc_dC, dc_dL;
-        T dc_deta, dc_dQci{},dc_dQai{},dc_dQli{};
+        T dc_drho{}, dc_dA{}, dc_dC{}, dc_dL{};
+        T dc_deta{}, dc_dQci{},dc_dQai{},dc_dQli{};
         for(int m = 0; m < NGL; m ++) {
             T temp = weight[m] * J * coef;
             dc_drho = temp * om * om * 
