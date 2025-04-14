@@ -65,26 +65,26 @@ def main():
         comp_name = ['W']
         fout.attrs['WaveType'] = 'Love'
         fout.attrs['ModelType'] = 'VTI'
-        PTYPE = 'f8'
+        PTYPE = 'f4'
         if HAS_ATT:
             dname = ['C','Q']
             #kl_name = ['rho','vsv','vsh','Qvsv','Qvsh']
             kl_name = ['vsh','vsv','Qvsh','Qvsv','rho']
-            PTYPE = 'c16'
+            PTYPE = 'c8'
         else:
             dname = ['C']
-            kl_name = ['rho','vsh','vsv']
+            kl_name = ['vsh','vsv','rho']
             
     elif SWD_TYPE == 1:
         comp_name = ['U','V']
         fout.attrs['WaveType'] = 'Rayleigh'
         fout.attrs['ModelType'] = 'VTI'
-        PTYPE = 'f8'
+        PTYPE = 'f4'
 
         if HAS_ATT:
             dname = ['C','Q']
             kl_name = ['rho','vph','vpv','vsv','eta','Qvph','Qvpv','Qvsv']
-            PTYPE = 'c16'
+            PTYPE = 'c8'
         else:
             dname = ['C']
             kl_name = ['rho','vph','vpv','vsv','eta']
@@ -93,7 +93,7 @@ def main():
         kl_name = ['rho_kl','vpv_kl','vph_kl','vsv_kl','vsh_kl','eta_kl','theta_kl','phi_kl']
         fout.attrs['WaveType'] = 'Full'
         fout.attrs['ModelType'] = 'TTI'
-        PTYPE = 'c16'
+        PTYPE = 'c8'
     fout.create_group("kernels")
 
     for it in range(len(T)):
@@ -102,7 +102,7 @@ def main():
         #fout.attrs[f"kernels/{it}/T"] = T[it]
 
         # read coordinates
-        zcords = fin.read_reals('f8')
+        zcords = fin.read_reals('f4')
         npts = zcords.size
         fout.create_dataset(f"kernels/{it}/zcords",dtype='f4',shape =(npts))
         fout[f'kernels/{it}/zcords'][:] = zcords[:]
@@ -120,10 +120,10 @@ def main():
             # read kernels
             for iname in range(len(dname)):
                 prefix = dname[iname]
-                kernel = fin.read_reals('f8').reshape((nkers,nz))
+                kernel = fin.read_reals('f4').reshape((nkers,nz))
                 for iker in range(nkers):
                     #print(f"{gname}/{prefix}_{kl_name[iker]}")
-                    fout.create_dataset(f"{gname}/{prefix}_{kl_name[iker]}",dtype='f8',shape=(nz))
+                    fout.create_dataset(f"{gname}/{prefix}_{kl_name[iker]}",dtype='f4',shape=(nz))
                     fout[f"{gname}/{prefix}_{kl_name[iker]}"][:] = kernel[iker,:]
                     #print(f"{gname}/{prefix}_{kl_name[iker]}")
 

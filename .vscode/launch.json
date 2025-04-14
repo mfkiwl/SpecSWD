@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/surflove",
-            "args": ["model.txt","1","1","1"],
+            "args": ["model.txt","0.01","1","1"],
             //"args": ["model.txt.love"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/example/love",

@@ -67,8 +67,8 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 
 # subs
 add_subdirectory(${PROJECT_SOURCE_DIR}/src/shared)
-add_subdirectory(${PROJECT_SOURCE_DIR}/src/solver)
-# add_subdirectory(${PROJECT_SOURCE_DIR}/src/vti)
+add_subdirectory(${PROJECT_SOURCE_DIR}/src/mesh)
+add_subdirectory(${PROJECT_SOURCE_DIR}/src/vti)
 # add_subdirectory(${PROJECT_SOURCE_DIR}/src/tti)
 # add_subdirectory(${PROJECT_SOURCE_DIR}/src/multiphysics)
 

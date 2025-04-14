@@ -3,11 +3,15 @@
 
 #include <iostream>
 
+namespace specswd
+{
+
+
 inline void __myfwrite(const void *__ptr, size_t __size, size_t __nitems, FILE *__stream)
 {
     size_t size = fwrite(__ptr,__size,__nitems,__stream);
     if(size != __nitems) {
-        fprintf(stderr,"cannot write to binary!\n");
+        printf("cannot write to binary!\n");
         exit(1);
     }
 }
@@ -29,5 +33,8 @@ write_binary_f(FILE *fp, const T *data, size_t n)
     // integer back
     __myfwrite(&size,sizeof(int),1,fp); 
 }
+    
+} // namespace specswd
+
 
 #endif

@@ -1,8 +1,7 @@
-file(GLOB SOURCE "*.cpp")
-list(FILTER SOURCE EXCLUDE REGEX "main_vti.cpp")
+file(GLOB SOURCE "*.cpp" )
+list(FILTER SOURCE EXCLUDE REGEX "main*.cpp")
 
-add_library(libvti ${SOURCE})
+add_library(vti ${SOURCE})
 
-# exe
-add_executable(surfvti ${PROJECT_SOURCE_DIR}/src/vti/main_vti.cpp)
-target_link_libraries(surfvti libvti shared ${LAPACK_LIBRARIES})
+add_executable(surflove main_love.cpp)
+target_link_libraries(surflove vti mesh shared ${LAPACK_LIBRARIES})

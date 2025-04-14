@@ -3,18 +3,22 @@
 #define SPECSWD_ATT_TABLE_H_
 
 #include <complex>
+
+namespace specswd
+{
+    
 const int NSLS = 5;
 
+std::complex<float> get_sls_modulus_factor(float freq,float Q);
 void 
-get_Q_sls_model(double Q,double *y_sls,double *w_sls);
+get_sls_Q_derivative(float freq,float Qm,std::complex<float> &s,
+                    std::complex<float> &dsdqi);
 
-std::complex<double> get_sls_modulus_factor(double freq,const double Q);
-void 
-get_sls_Q_derivative(double freq,const double Q,std::complex<double> &s,
-                    std::complex<double> &dsdqi);
+void get_C21_att(float freq,const float *Qm,int nQmodel,
+                       std::complex<float>* __restrict c21,
+                       int funcid=1);
 
-void set_C21_att_model(double freq,const double *Qm,int nQmodel,
-                       std::complex<double>* __restrict c21,
-                       int funcid=0,bool do_deriv=false);
+
+}
 
 #endif
