@@ -17,7 +17,7 @@ namespace specswd
  * @param frekl Frechet kernels (N/L/rho) for elastic parameters, shape(3,nspec*NGLL + NGRL) 
  */
 void SolverLove:: 
-compute_phase_kl(const Mesh &M,float freq,
+compute_phase_kl(const Mesh &M,
                 float c,const float *egn,
                 std::vector<float> &frekl) const
 {
@@ -26,6 +26,7 @@ compute_phase_kl(const Mesh &M,float freq,
     Eigen::Map<const Eigen::ArrayXf> K(Kmat.data(),ng);
 
     // get coefs
+    float freq = M.freq;
     double om = 2 * M_PI * freq;
     float coef = -0.5 * std::pow(c,3) / std::pow(om,2) / (x * K * x).sum();
 
@@ -50,14 +51,13 @@ compute_phase_kl(const Mesh &M,float freq,
 /**
  * @brief compute love wave phase velocity kernels, visco-elastic case
  * 
- * @param freq current frequency
  * @param c  current complex phase velocity
  * @param displ eigen function, shape(nglob_el)
  * @param frekl_c dRe(c)/d(N/L/QN/QL/rho) shape(5,nspec*NGLL + NGRL) 
  * @param frekl_q d(qi)/d(N/L/QN/QL/rho) shape(5,nspec*NGLL + NGRL) 
  */
 void SolverLove:: 
-compute_phase_kl_att(const Mesh &M,float freq,
+compute_phase_kl_att(const Mesh &M,
                     scmplx c, const scmplx *egn,
                     std::vector<float> &frekl_c,
                     std::vector<float> &frekl_q) const
@@ -67,8 +67,11 @@ compute_phase_kl_att(const Mesh &M,float freq,
     Eigen::Map<const Eigen::ArrayXcf> K(CKmat.data(),ng);
 
     // coefs for phase kernel
-    double om = 2 * M_PI * freq;
-    scmplx coef = (float)(-0.5 / std::pow(om,2)) * std::pow(c,3)  / (x * K * x).sum();
+    float freq = M.freq;
+    float om = 2 * M_PI * freq;
+    float om_sq = om * om;
+    scmplx c_sq = c * c;
+    scmplx coef = -0.5f / om_sq * c_sq * c  / (x * K * x).sum();
 
     // left eigen vector
     Eigen::ArrayXcf y = x.conjugate();
@@ -80,7 +83,7 @@ compute_phase_kl_att(const Mesh &M,float freq,
 
     // get M/K/E coefs
     scmplx c_M = (float)(om * om) * coef;
-    scmplx c_K = -std::pow((float)om / c,2) * coef;
+    scmplx c_K = -om_sq / c_sq * coef;
     scmplx c_E = -coef;
 
     // get kernels
@@ -98,13 +101,12 @@ compute_phase_kl_att(const Mesh &M,float freq,
 /**
  * @brief compute Rayleigh wave phase kernels, elastic case
  * 
- * @param freq current frequency
  * @param c  current phase velocity
  * @param ur/ul right/left eigen function, shape(nglob_el*2+nglob_ac)
  * @param frekl Frechet kernels A/C/L/eta/kappa/rho_kl kernels for elastic parameters, shape(6,nspec*NGLL + NGRL) 
  */
 void SolverRayl:: 
-compute_phase_kl(const Mesh &M,float freq,
+compute_phase_kl(const Mesh &M,
                 float c,const float *ur,
                 const float *ul,
                 std::vector<float> &frekl) const
@@ -115,6 +117,7 @@ compute_phase_kl(const Mesh &M,float freq,
     Eigen::Map<const fmat2> K(Kmat.data(),ng,ng);
 
     // coefs for phase kernel
+    float freq = M.freq;
     double om = 2 * M_PI * freq;
     double coef = - 0.5 * std::pow(c,3) / std::pow(om,2) / (y.transpose() * K * x).sum();
 
@@ -135,23 +138,22 @@ compute_phase_kl(const Mesh &M,float freq,
         M.ibool_el.data(),M.ibool_ac.data(),
         M.jaco.data(),M.xrho_el.data(),M.xrho_ac.data(),
         M.xA.data(),M.xC.data(),M.xL.data(),
-        M.xeta.data(),M.xQA.data(),M.xQC.data(),
-        M.xQL.data(),M.xkappa_ac.data(),M.xQk_ac.data(),
+        M.xeta.data(),nullptr,nullptr,
+        nullptr,M.xkappa_ac.data(),nullptr,
         frekl.data(),nullptr
-);
+    );
 }
 
 /**
  * @brief compute Rayleigh wave phase kernels, visco-elastic case
  * 
- * @param freq current frequency
  * @param c  current phase velocity
  * @param ur/ul right/left eigen function, shape(nglob_el*2+nglob_ac)
  * @param frekl_c dRe(c)/d(A/C/L/eta/Qa/Qc/Ql/kappa/Qk/rho) kernels for elastic parameters, shape(10,nspec*NGLL + NGRL) 
  * @param frekl_q dRe(Q_R)/d(A/C/L/eta/Qa/Qc/Ql/kappa/Qk/rho) kernels for elastic parameters, shape(10,nspec*NGLL + NGRL) 
  */
 void SolverRayl:: 
-compute_phase_kl_att(const Mesh &M,float freq,
+compute_phase_kl_att(const Mesh &M,
                 scmplx c,const scmplx *ur,
                 const scmplx *ul,
                 std::vector<float> &frekl_c,
@@ -163,8 +165,11 @@ compute_phase_kl_att(const Mesh &M,float freq,
     Eigen::Map<const cmat2> K(CKmat.data(),ng,ng);
 
     // get coefs
-    double om = 2 * M_PI * freq;
-    scmplx coef = (float)(- 0.5  / std::pow(om,2)) * std::pow(c,3) / (y.adjoint() * K * x).sum();
+    float freq = M.freq;
+    float om = 2 * M_PI * freq;
+    float om_sq = om * om; 
+    scmplx c_sq = c * c;
+    scmplx coef = -0.5f / om_sq * c_sq * c  / (y.adjoint() * K * x).sum();
 
     // allocate phase velocity kernels
     int size = M.ibool.size();
@@ -175,7 +180,7 @@ compute_phase_kl_att(const Mesh &M,float freq,
 
     scmplx c_M = (float)(om * om) * coef;
     scmplx c_E = -coef;
-    scmplx c_K = -std::pow((float)om / c,2) * coef;
+    scmplx c_K = -om_sq / c_sq * coef;
 
     rayl_op_matrix(
         freq,c_M,c_K,c_E,ul,ur,M.nspec_el,M.nspec_ac,

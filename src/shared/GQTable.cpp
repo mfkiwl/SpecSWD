@@ -53,14 +53,12 @@ void initialize()
         hprimeT[i * NGLL + j] = hprime[j * NGLL + i];
     }}
 
-
     // GRL nodes/weights
     gauss_radau_laguerre(x_temp.data(),w_temp.data(),NGRL);
     for(int i = 0; i < NGRL; i ++) {
         xgrl[i] = x_temp[i];
         wgrl[i] = w_temp[i];
     }
-
 
     // compute hprime_grl and hprimeT_grl
     for(int i = 0; i < NGRL; i ++) {

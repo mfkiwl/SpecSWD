@@ -264,7 +264,7 @@ create_model_attributes()
     int ipt0 = 0,ipt1 = 0;
     for(int i = 1; i < nz_tomo; i ++) {
         if(depth_tomo[i] == depth_tomo[i-1]) {
-            ndis += 1;
+            ndis = ndis + 1;
             ipt1 = i-1;
 
             // add to region_bdry
@@ -404,11 +404,12 @@ print_model() const
             }
         }
         else if (SWD_TYPE == 1) {
-            printf("depth\t rho\t vph\t vpv\t vsv\t eta (Qvpv Qvph Qvsv)\n");
+            printf("depth\t rho\t vph\t vpv\t vsv\t eta (Qvph Qvpv Qvsv)\n");
             for(int i = istart; i <= iend; i ++) {
-                printf("%f %f %f %f %f",
+                printf("%f %f %f %f %f %f",
                         depth_tomo[i],rho_tomo[i], 
-                        vph_tomo[i],vpv_tomo[i],vsv_tomo[i]);
+                        vph_tomo[i],vpv_tomo[i],vsv_tomo[i],
+                        eta_tomo[i]);
                 if(HAS_ATT) {
                     printf(" %f %f %f\n",QA_tomo[i],QC_tomo[i],QL_tomo[i]);
                 }

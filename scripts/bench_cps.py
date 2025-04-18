@@ -21,7 +21,7 @@ def main():
     modfile = sys.argv[1]
     wavetype = int(sys.argv[2])
 
-    data = np.loadtxt(modfile,skiprows=1,dtype=np.float32)
+    data = np.loadtxt(modfile,dtype=np.float32)
     thk = data[:,0]
     rho = data[:,1]
     vs = data[:,4]
@@ -40,7 +40,7 @@ def main():
         wtp = 'R'
     else:
         wtp = 'L'
-    for i in range(0,6):
+    for i in range(20):
         c = np.zeros(len(T))
         u = np.zeros(len(T))
         for it in range(len(T)):

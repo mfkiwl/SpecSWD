@@ -1,5 +1,5 @@
-#ifndef SPECSWD_PRECISION_H_
-#define SPECSWD_PRECISION_H_
+#ifndef SPECSWD_SCHUR_H_
+#define SPECSWD_SCHUR_H_
 
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>

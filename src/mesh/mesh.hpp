@@ -68,6 +68,9 @@ struct Mesh {
 
     float PHASE_VELOC_MIN,PHASE_VELOC_MAX;
 
+    // current frequency
+    float freq;
+
     // public functions
     void read_model(const char *filename);
     void create_database(float freq,float phi);
@@ -93,9 +96,9 @@ struct Mesh {
 
     // create SEM database
     void compute_minmax_veloc_(float phi,std::vector<float> &vmin,std::vector<float> &vmax);
-    void create_db_love_(float freq);
-    void create_db_rayl_(float freq);
-    void create_db_aniso_(float freq);
+    void create_db_love_();
+    void create_db_rayl_();
+    void create_db_aniso_();
 };
     
 } // namespace specswd

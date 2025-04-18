@@ -29,18 +29,18 @@ public:
     void compute_egn(const Mesh &M,float freq,
                     std::vector<float> &c,
                     std::vector<scmplx> &egn,
-                    bool save_qz=false);
+                    bool use_qz=false);
     void compute_egn_att(const Mesh &M,float freq,
                         std::vector<scmplx> &c,
                         std::vector<scmplx> &ur,
                         std::vector<scmplx> &ul,
-                        bool save_qz=false);
+                        bool use_qz=false);
     
     // group velocity
     float group_vel(const Mesh &M,float freq,
                     float c,const scmplx *egn) const;
     scmplx group_vel_att(const Mesh &M,float freq,
-                            scmplx c, const scmplx *ur,
+                        scmplx c, const scmplx *ur,
                         const scmplx *ul) const ;
 
     // phase velocity kernels

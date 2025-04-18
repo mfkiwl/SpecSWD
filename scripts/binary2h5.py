@@ -46,9 +46,9 @@ def main():
             fout.create_dataset(f"{gname}/cQ",shape = (nt1),dtype='f4')
             fout.create_dataset(f"{gname}/uQ",shape = (nt1),dtype='f4')
             fout[f'{gname}/c'][:] = data1[:,1]
-            fout[f'{gname}/u'][:] = data1[:,3]
-            fout[f'{gname}/cQ'][:] = 0.5 * data1[:,1] / data1[:,2]
-            fout[f'{gname}/uQ'][:] = 0.5 * data1[:,3] / data1[:,4]
+            fout[f'{gname}/u'][:] = data1[:,2]
+            fout[f'{gname}/cQ'][:] = 0.5 * data1[:,1] / data1[:,3]
+            fout[f'{gname}/uQ'][:] = 0.5 * data1[:,2] / data1[:,4]
         else:
             fout[f'{gname}/c'][:] = data1[:,1]
             fout[f'{gname}/u'][:] = data1[:,2]
@@ -68,7 +68,6 @@ def main():
         PTYPE = 'f4'
         if HAS_ATT:
             dname = ['C','Q']
-            #kl_name = ['rho','vsv','vsh','Qvsv','Qvsh']
             kl_name = ['vsh','vsv','Qvsh','Qvsv','rho']
             PTYPE = 'c8'
         else:
@@ -83,11 +82,11 @@ def main():
 
         if HAS_ATT:
             dname = ['C','Q']
-            kl_name = ['rho','vph','vpv','vsv','eta','Qvph','Qvpv','Qvsv']
+            kl_name = ['vph','vpv','vsv','eta','Qvph','Qvpv','Qvsv','vp','Qvp','rho']
             PTYPE = 'c8'
         else:
             dname = ['C']
-            kl_name = ['rho','vph','vpv','vsv','eta']
+            kl_name = ['vph','vpv','vsv','eta','vp','rho']
     else:
         comp_name = ['U','W','V']
         kl_name = ['rho_kl','vpv_kl','vph_kl','vsv_kl','vsh_kl','eta_kl','theta_kl','phi_kl']

@@ -22,17 +22,16 @@ void egn2displ_love_(int nspec,const int *ibool_el,const T *egn,
 }
 
 void SolverLove::
-egn2displ(const Mesh &M,float freq,float c, const float *egn,float * __restrict displ ) const 
+egn2displ(const Mesh &M,float c, const float *egn,float * __restrict displ ) const 
 {
     egn2displ_love_(M.nspec,M.ibool_el.data(),egn,displ);
 }
 
 void SolverLove::
-egn2displ_att(const Mesh &M,float freq,scmplx c, const scmplx *egn,scmplx * __restrict displ ) const 
+egn2displ_att(const Mesh &M,scmplx c, const scmplx *egn,scmplx * __restrict displ ) const 
 {
     egn2displ_love_(M.nspec,M.ibool_el.data(),egn,displ);
 }
-
 
 
 template<typename T = float>
@@ -109,25 +108,41 @@ void egn2displ_rayl_(int nspec_el,int nspec_ac,int nspec_el_grl,int nspec_ac_grl
 
 }
 
+/**
+ * @brief convert right eigenfunction to displacement, elastic case
+ * 
+ * @param M Mesh class
+ * @param c current phase velocity
+ * @param egn eigenfunction,shape(nglob_el*2+nglob_ac)
+ * @param displ displacement, shape(2,npts)
+ */
 void SolverRayl::
-egn2displ(const Mesh &M,float freq,float c, const float *egn,float * __restrict displ ) const 
+egn2displ(const Mesh &M,float c, const float *egn,float * __restrict displ ) const 
 {
     egn2displ_rayl_(
         M.nspec_el,M.nspec_ac,M.nspec_el_grl,M.nspec_ac_grl,
         M.nglob_el,M.nglob_ac,M.jaco.data(),M.ibool_el.data(),
         M.ibool_ac.data(),M.el_elmnts.data(),M.ac_elmnts.data(),
-        M.xrho_ac.data(),egn,freq,c,displ
+        M.xrho_ac.data(),egn,M.freq,c,displ
     );
 }
 
+/**
+ * @brief convert right eigenfunction to displacement, visco-elastic case
+ * 
+ * @param M Mesh class
+ * @param c current phase velocity
+ * @param egn eigenfunction,shape(nglob_el*2+nglob_ac)
+ * @param displ displacement, shape(2,npts)
+ */
 void SolverRayl::
-egn2displ_att(const Mesh &M,float freq,scmplx c, const scmplx *egn,scmplx * __restrict displ ) const 
+egn2displ_att(const Mesh &M,scmplx c, const scmplx *egn,scmplx * __restrict displ ) const 
 {
     egn2displ_rayl_(
         M.nspec_el,M.nspec_ac,M.nspec_el_grl,M.nspec_ac_grl,
         M.nglob_el,M.nglob_ac,M.jaco.data(),M.ibool_el.data(),
         M.ibool_ac.data(),M.el_elmnts.data(),M.ac_elmnts.data(),
-        M.xrho_ac.data(),egn,freq,c,displ
+        M.xrho_ac.data(),egn,M.freq,c,displ
     );
 }
 

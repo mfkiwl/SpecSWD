@@ -277,7 +277,7 @@ rayl_op_matrix(float freq,T c_M,T c_K, T c_E,const T *y, const T *x,
 
         // get const arrays
         const bool is_gll = (ispec != nspec_el);
-        const float *w = is_gll? wgll.data(): wgrl.data();
+        const float *weight = is_gll? wgll.data(): wgrl.data();
         const float *hp = is_gll? hprime.data(): hprime_grl.data();
         const int NGL = is_gll? NGLL : NGRL;
 

@@ -9,7 +9,7 @@ sourcedir=`pwd`/../../
 echo $sourcedir
 
 # run sem
-KERNEL_TYPE=1
+KERNEL_TYPE=0
 time $sourcedir/bin/surflove model.txt 0.01 1 500 $KERNEL_TYPE
 #time $sourcedir/bin/surflove model.txt 0.01 1 2
 

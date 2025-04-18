@@ -38,7 +38,7 @@ prepare_love_(float freq,int nspec,int nglob_el,const float *xrho,
 
     for(int ispec = 0; ispec < nspec + 1; ispec ++) {
         int id = ispec * NGLL;
-        const bool is_gll = (ispec != nspec_el);
+        const bool is_gll = (ispec != nspec);
         const float *weight = is_gll? wgll.data(): wgrl.data();
         const float *hpT = is_gll? hprimeT.data(): hprimeT_grl.data();
         const int NGL = is_gll? NGLL : NGRL;
@@ -53,7 +53,7 @@ prepare_love_(float freq,int nspec,int nglob_el,const float *xrho,
         }
 
         // compute M/K/E
-        for(int i = 0; i < NGL; i ++) {
+        for(int i = 0; i < NGL; i ++) { 
             int iglob = ibool_el[id + i];
 
             float temp = weight[i] * jaco[ispec];
@@ -80,15 +80,15 @@ prepare_love_(float freq,int nspec,int nglob_el,const float *xrho,
  * @brief prepare M/K/E matrices for Love wave, an/elastic case
  * 
  */
-void SolverLove::prepare_matrices(float freq,const Mesh &M)
+void SolverLove::prepare_matrices(const Mesh &M)
 {
     if(!M.HAS_ATT) {
-        prepare_love_(freq,M.nspec_el,M.nglob_el,M.xrho_el.data(),
+        prepare_love_(M.freq,M.nspec_el,M.nglob_el,M.xrho_el.data(),
                     M.ibool_el.data(),M.jaco.data(),M.xL.data(),
                     M.xN.data(),nullptr,nullptr,Mmat,Kmat,Emat);
     }
     else {
-        prepare_love_(freq,M.nspec_el,M.nglob_el,M.xrho_el.data(),
+        prepare_love_(M.freq,M.nspec_el,M.nglob_el,M.xrho_el.data(),
                     M.ibool_el.data(),M.jaco.data(),M.xL.data(),
                     M.xN.data(),M.xQL.data(),M.xQN.data(),
                     Mmat,CKmat,CEmat);
@@ -146,7 +146,7 @@ prepare_rayl_(float freq,int nspec_el,int nspec_ac,
         const float *weight = is_gll? wgll.data(): wgrl.data();
         const float *hpT = is_gll? hprimeT.data(): hprimeT_grl.data();
         const float *hp = is_gll? hprime.data(): hprime_grl.data();
-        const int NGL = is_gll? NGLL : NGRL;;
+        const int NGL = is_gll? NGLL : NGRL;
 
         // jacobian
         float J = jaco[iel];
@@ -208,7 +208,7 @@ prepare_rayl_(float freq,int nspec_el,int nspec_ac,
         int iel = ac_elmnts[ispec];
         int id = ispec * NGLL;
 
-        const bool is_gll = (ispec != nspec_el);
+        const bool is_gll = (ispec != nspec_ac);
         const float *weight = is_gll? wgll.data(): wgrl.data();
         const float *hpT = is_gll? hprimeT.data(): hprimeT_grl.data();
         const int NGL = is_gll? NGLL : NGRL;
@@ -283,14 +283,13 @@ prepare_rayl_(float freq,int nspec_el,int nspec_ac,
 
 /**
  * @brief preparing M/K/E matrices for Rayleigh wave
- * @param freq current frequency
  * @param mesh Mesh class
  */
-void SolverRayl::prepare_matrices(float freq,const Mesh &M)
+void SolverRayl::prepare_matrices(const Mesh &M)
 {
     if(!M.HAS_ATT) {
         prepare_rayl_(
-            freq,M.nspec_el,M.nspec_ac,
+            M.freq,M.nspec_el,M.nspec_ac,
             M.nspec_el_grl,M.nspec_ac_grl,M.nglob_el,
             M.nglob_ac,M.el_elmnts.data(),M.ac_elmnts.data(),
             M.xrho_el.data(),M.xrho_ac.data(),M.ibool_el.data(),
@@ -304,7 +303,7 @@ void SolverRayl::prepare_matrices(float freq,const Mesh &M)
     }
     else {
         prepare_rayl_(
-            freq,M.nspec_el,M.nspec_ac,
+            M.freq,M.nspec_el,M.nspec_ac,
             M.nspec_el_grl,M.nspec_ac_grl,M.nglob_el,
             M.nglob_ac,M.el_elmnts.data(),M.ac_elmnts.data(),
             M.xrho_el.data(),M.xrho_ac.data(),M.ibool_el.data(),

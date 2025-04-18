@@ -44,7 +44,7 @@ get_Q_sls_model(float Q,double *y_sls,double *w_sls)
  * 
  * @param freq current frequency
  * @param Qa Qvalue 
- * @param xA 
+ * @return s modulus factor  mu = mu * s 
  */
 crealw get_sls_modulus_factor(float freq,float Q)
 {

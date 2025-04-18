@@ -205,12 +205,15 @@ def love_func(c,r1,r2,bev1,bev2,beh1,beh2,Qv1,Qv2,Qh1,Qh2,H,om,HAS_ATT,phase_kl=
     temp = np.tan(k * H / bv1 * t1)
     f = L2 / (L1) * t2 / bv2
     f -= t1 / bv1 * temp 
+    #f = -np.sqrt(-N1/L1 + c**2*r1/L1)*np.tan(H*om*np.sqrt(-N1/L1 + c**2*r1/L1)/c) + L2*np.sqrt(N2/L2 - c**2*r2/L2)/L1
     #f = L2/L1 * np.sqrt((N2/L2)**2 - (r2 * c/L2)**2) - np.sqrt((c *r1/L1)**2 - (N1/L1)**2) * np.tan((om * H)/c *np.sqrt((c * r1/ L1)**2 - (N1/L1)**2))
-
+    f = -np.sqrt(-N1/L1 + c**2*r1/L1)*np.tan(H*om*np.sqrt(-N1/L1 + c**2*r1/L1)/c) + L2*np.sqrt(N2/L2 - c**2*r2/L2)/L1
+    
     # derivative df/dc
     fd = - L2 * bv1 / (L1 * bv2) * c / t2
     fd += -c / t1 * temp 
     fd += -t1 * (1 + temp**2) * (- om * H / c**2 / bv1 * t1 + om * H / bv1 / t1 )
+    fd = -np.sqrt(-N1/L1 + c**2*r1/L1)*(-H*om*np.sqrt(-N1/L1 + c**2*r1/L1)/c**2 + H*om*r1/(L1*np.sqrt(-N1/L1 + c**2*r1/L1)))*(np.tan(H*om*np.sqrt(-N1/L1 + c**2*r1/L1)/c)**2 + 1) - c*r1*np.tan(H*om*np.sqrt(-N1/L1 + c**2*r1/L1)/c)/(L1*np.sqrt(-N1/L1 + c**2*r1/L1)) - c*r2/(L1*np.sqrt(N2/L2 - c**2*r2/L2))
 
     # d(\tilde{c})/dL1/L2/N1/N2/rho
     if phase_kl:
@@ -251,7 +254,6 @@ def love_func(c,r1,r2,bev1,bev2,beh1,beh2,Qv1,Qv2,Qh1,Qh2,H,om,HAS_ATT,phase_kl=
     return f,fd,D1
 
 def get_deriv_2layer_h5(fio:h5py,HAS_ATT:bool,gname:str):
-
     if not HAS_ATT:
         kl_name = ['vsh','vsv','rho']
         D = np.zeros((2,3,2))
@@ -265,6 +267,7 @@ def get_deriv_2layer_h5(fio:h5py,HAS_ATT:bool,gname:str):
 
         return D 
     else:
+        D = np.zeros((2,5,2))
         kl_name = ['vsh','vsv','Qvsh','Qvsv','rho']
         for iker in range(len(kl_name)):
             a = fio[f"{gname}/C_{kl_name[iker]}"][:]
@@ -455,7 +458,8 @@ def main():
             phase_sem = phase_deriv * 0.
             for it in range(len(T)):
                 f0,dfdc,D = love_func(c_cmplx[it],rho1,rho2,bv1,bv2,bh1,
-                                    bh2,Qv1,Qv2,Qh1,Qh2,H,2*np.pi/T[it],phase_kl)
+                                    bh2,Qv1,Qv2,Qh1,Qh2,H,2*np.pi/T[it],
+                                    HAS_ATT,phase_kl)
                 ua[it] = get_group(c_cmplx[it],rho1,rho2,bv1,bv2,
                                     bh1,bh2,H,2*np.pi/T[it],HAS_ATT,
                                     Qv1,Qv2,Qh1,Qh2)
@@ -555,7 +559,7 @@ def main():
         kl_type = "phase"
         if phase_kl == False:
             kl_type = "group"
-        fig2.savefig(f"l{kl_type}_deriv_veloc_att.jpg",dpi=300)
+        fig2.savefig(f"{kl_type}_deriv_veloc_att.jpg",dpi=300)
 
         # save figure2
         fig3.colorbar(sm,ax=ax3.ravel().tolist(),label='order',location='bottom',pad=0.075,shrink=0.4,format='%d')

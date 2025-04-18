@@ -1,149 +1,185 @@
+
+#include "libswd/specswd.hpp"
+#include "libswd/global.hpp"
+
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
 #include <iostream>
 
-#include "libswd/utils.hpp"
-
 
 namespace py = pybind11;
+using namespace py::literals;
 using py::arg;
 
-typedef py::array_t<float> ftensor;
-typedef py::array_t<double> dtensor;
-typedef std::tuple<dtensor,dtensor,dtensor,dtensor,dtensor,bool> tupledt6;
-typedef std::tuple<dtensor,bool> tuple2;
+const auto FCST = (py::array::c_style | py::array::forcecast) ;
+typedef py::array_t<float,FCST> vec;
+typedef py::array_t<std::complex<float>,FCST> cvec;
 
-static int 
-check_wavetype(const std::string &wavetype)
+void init_love(const vec &z,const vec &rho,
+             const vec &vsh, const vec &vsv,
+             const vec &QN, const vec &QL,
+             bool HAS_ATT,bool print_info)
 {
-    // check input parameters
-    bool flag = wavetype == "Rc" || wavetype == "L";
-    if(flag == false){
-        std::cout << "parameter wavetp should be in one of [R,L]\n ";
-        exit(0);
-    }
-    int iwave = 1;
-    if(wavetype[0] == 'R') {
-        iwave = 2;
+    // init GQtable
+    specswd_init_GQTable();
+
+    // get pointer
+    const float *qn = nullptr, *ql = nullptr;
+    if(HAS_ATT) {
+        qn = QN.data();
+        ql = QL.data();
     }
 
-    return iwave;
+    // init mesh
+    int nz = z.size();
+    specswd_init_mesh_love(
+        nz,z.data(),rho.data(),vsh.data(),vsv.data(),
+        qn,ql,HAS_ATT,print_info
+    );
 }
 
-auto 
-swdvti(const ftensor &thk,const ftensor &vpv,const ftensor &vph,
-        const ftensor &vsv,const ftensor &vsh,const ftensor &eta,const ftensor &rho, 
-        const dtensor &t,const std::string &wavetype, bool only_phase,
-        int mode=0)
+void init_rayl(const vec &z,const vec &rho,
+             const vec &vph, const vec &vpv,
+             const vec &vsv, const vec &QA,
+             const vec &QC, const vec &QL,
+             bool HAS_ATT,bool print_info)
 {
-    int iwave = check_wavetype(wavetype);
+    // init GQtable
+    specswd_init_GQTable();
+
+    // get pointer
+    const float *qa = nullptr, 
+                *ql = nullptr,
+                *qc = nullptr;
+    if(HAS_ATT) {
+        qa = QA.data();
+        ql = QL.data();
+        qc = QC.data();
+    }
+
+    int nz = z.size();
+    specswd_init_mesh_rayl(
+        nz,z.data(),rho.data(),vph.data(),vpv.data(),
+        vsv.data(),qa,qc,ql,HAS_ATT,print_info
+    );
+}
+
+template <typename T> py::array_t<T,FCST> 
+compute_swd(float freq,int max_order,bool use_qz) 
+{
+    using namespace specswd_pylib;
+    py::array_t<T,FCST> c_out;
+    const int SWD_TYPE = M_->SWD_TYPE;
+    const bool HAS_ATT = M_->HAS_ATT;
+
+    // get phase velocities
+    switch (SWD_TYPE)
+    {
+    case 0:
+        specswd_egn_love(freq,use_qz);
+        break;
+    case 1:
+        specswd_egn_rayl(freq,use_qz);
+        break;
+    default:
+        break;
+    }
 
     // allocate space
-    int nt = t.size(), n = thk.size();
-    dtensor cg(nt),cp(nt);
-
-    __surfvti(thk.data(),vph.data(),vpv.data(),vsh.data(),vsv.data(),eta.data(),
-              rho.data(),n,nt,mode,iwave,only_phase,t.data(),cp.mutable_data(),
-              cg.mutable_data());
-    if(only_phase) cg = cp;
-
-    return std::make_tuple(cp,cg);
-}
-
-auto 
-vti_kl(const ftensor &thk,const ftensor &vpv,const ftensor &vph,
-        const ftensor &vsv,const ftensor &vsh,const ftensor &eta,
-        const ftensor &rho,const dtensor &t,
-        const std::string &wavetype,int mode=0)
-{
-    int iwave = check_wavetype(wavetype);
-    int nt = t.size(), n = thk.size();
-    dtensor cg(nt),cp(nt);
-
-    auto frekl = __surfvti_kl(thk.data(),vph.data(),vpv.data(),vsh.data(),vsv.data(),
-                              eta.data(),rho.data(),n,nt,mode,iwave,
-                              t.data(),cp.mutable_data(),cg.mutable_data());
-    int nker = frekl.size() / (n * nt);
-    dtensor frekl_out({nt,nker,n});
-    memcpy(frekl_out.mutable_data(),frekl.data(),frekl.size() * sizeof(double));
-    
-    return std::make_tuple(cp,cg,frekl_out);
-}
-
-
-
-//
-auto 
-swdiso(const ftensor &thk,const ftensor &vp,const ftensor &vs,const ftensor &rho,
-        const dtensor &t,const std::string &wavetype, bool only_phase,
-        int mode=0)
-{
-    ftensor eta(thk.size());
-    for(size_t i = 0; i < thk.size(); i++ ) eta.mutable_data()[i] = 1.;
-    return swdvti(thk,vp,vp,vs,vs,eta,rho,t,wavetype,only_phase,mode);
-}
-
-auto 
-iso_kl(const ftensor &thk,const ftensor &vp,const ftensor &vs,const ftensor &rho,
-        const dtensor &t,const std::string wavetype,int mode=0)
-{
-    dtensor cp,cg,frekl;
-    ftensor eta(thk.size());
-    for(size_t i = 0; i < thk.size(); i++ ) eta.mutable_data()[i] = 1.;
-    std::tie(cp,cg,frekl) = vti_kl(thk,vp,vp,vs,vs,eta,rho,t,wavetype,mode);
-
-    int iwave = check_wavetype(wavetype);
-    auto kl = frekl.unchecked<3>();
-    
-    // convert to iso type
-    auto shape = frekl.shape();
-    int nker = shape[1], n = shape[2], nt = shape[0];
-    dtensor frekl_out;
-    if(iwave == 1) { // love wave
-        frekl_out.resize({nt,2,n});
-        auto data = frekl_out.mutable_unchecked<3>();
-
-        for(int it = 0; it < nt; it ++) {
-            for(int i = 0; i < n; i ++) {
-                data(it,0,i) = kl(it,0,i) + kl(it,1,i);
-                data(it,1,i) = kl(it,2,i);
-            }
-        }
+    int nc = (HAS_ATT) ? cc_.size()  : c_.size();
+    const T *c_glob = nullptr;
+    if constexpr (std::is_same_v<T,float>) {
+        c_glob = c_.data();
     }
     else {
-        frekl_out.resize({nt,3,n});
-        auto data = frekl_out.mutable_unchecked<3>();
-        for(int it = 0; it < nt; it ++) {
-            for(int i = 0; i < n; i ++) {
-                data(it,0,i) = kl(it,0,i) + kl(it,1,i); // vp
-                data(it,1,i) = kl(it,2,i); // vs
-                data(it,2,i) = kl(it,4,i); // rho
-            }
-        }
+        c_glob = cc_.data();
     }
-    
-    return std::make_tuple(cp,cg,frekl_out);
+    if (max_order < 0 || max_order > nc ) {
+        max_order = nc;
+    }
+    c_out.resize({nc});
+
+    // copy phase velocity to c_out
+    auto c = c_out.template mutable_unchecked<1>();
+    for(int ic = 0; ic < max_order; ic ++) {
+        c(ic) = c_glob[ic];
+    }
+
+    return c_out;
 }
 
+template <typename T> py::array_t<T,FCST> 
+compute_group_vel(int max_order)
+{
+    using namespace specswd_pylib;
+    py::array_t<T,FCST> u_out;
+    const int SWD_TYPE = M_->SWD_TYPE;
+    const bool HAS_ATT = M_->HAS_ATT;
+
+    // get phase velocities
+    switch (SWD_TYPE)
+    {
+    case 0:
+        specswd_group_love();
+        break;
+    case 1:
+        specswd_group_rayl();
+        break;
+    default:
+        break;
+    }
+
+    // allocate space
+    int nc = (HAS_ATT) ? cu_.size()  : u_.size();
+    const T *u_glob = nullptr;
+    if constexpr (std::is_same_v<T,float>) {
+        u_glob = u_.data();
+    }
+    else {
+        u_glob = cu_.data();
+    }
+    if (max_order < 0 || max_order > nc ) {
+        max_order = nc;
+    }
+    u_out.resize({nc});
+
+    // copy phase velocity to c_out
+    auto u = u_out.template mutable_unchecked<1>();
+    for(int ic = 0; ic < max_order; ic ++) {
+        u(ic) = u_glob[ic];
+    }
+
+    return u_out;
+}
 
 PYBIND11_MODULE(libswd,m){
     m.doc() = "Surface wave dispersion and sensivity kernel\n";
-    m.def("swdiso",&swdiso,arg("thk"),arg("vp"),arg("vs"),
-          arg("rho"),arg("period"),arg("wavetype"),arg("only_phase"),
-          arg("mode")=0,
-          "ISO surface wave dispersion c++ wrapper");
+    m.def("init_love",&init_love,arg("z"),arg("rho"),arg("vsh"),
+          arg("vsv"),arg("QN"),arg("QL"),
+          arg("HAS_ATT") = false,
+          arg("print_info") = false,
+          "initialize global vars for love wave");
+        
+    m.def("init_rayl",&init_rayl,arg("z"),arg("rho"),arg("vph"),
+          arg("vpv"),arg("vsv"),arg("QA"),arg("QC"),
+          arg("QL"),arg("HAS_ATT") = false,
+          arg("print_info") = false,
+          "initialize global vars for rayleigh wave");
+    
+    m.def("compute_egn",&compute_swd<float>,
+          arg("freq"),arg("max_order"),arg("use_qz")=true,
+          "compute dispersions for elastic wave");
 
-    m.def("iso_kl",&iso_kl,arg("thk"),arg("vp"),arg("vs"),
-          arg("rho"),arg("period"),arg("wavetype"),arg("mode")=0,
-          "ISO surface wave kernel c++ wrapper");
+    m.def("compute_egn_att",&compute_swd<std::complex<float>>,
+          arg("freq"),arg("max_order"),arg("use_qz")=true,
+          "compute dispersions for visco-elastic wave");
 
-    m.def("swdvti",&swdvti,arg("thk"),arg("vpv"),arg("vph"),arg("vsv"),
-          arg("vsh"),arg("eta"),arg("rho"),arg("period"),arg("wavetype"),arg("only_phase"),
-          arg("mode")=0,
-          "VTI surface wave dispersion c++ wrapper");
+    m.def("group_vel",&compute_group_vel<float>,
+            arg("max_order"),
+         "compute group velocity for elastic wave");
 
-    m.def("vti_kl",&vti_kl,arg("thk"),arg("vpv"),arg("vph"),arg("vsv"),
-          arg("vsh"),arg("eta"),arg("rho"),arg("period"),arg("wavetype"),arg("mode")=0,
-          "VTI surface wave kernel c++ wrapper");
+    m.def("group_vel_att",&compute_group_vel<std::complex<float>>,
+            arg("max_order"),
+         "compute group velocity for visco-elastic wave");
 }

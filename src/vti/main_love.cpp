@@ -94,7 +94,7 @@ int main (int argc, char **argv){
         int ng = mesh.nglob_el;
 
         // prepare all matrices
-        sol -> prepare_matrices(freq[it],mesh);
+        sol -> prepare_matrices(mesh);
 
         if(!mesh.HAS_ATT) {
             std::vector<float> c,egn,u,frekl;
@@ -102,24 +102,24 @@ int main (int argc, char **argv){
             std::vector<float> displ;
 
             // compute eigenvalue
-            sol -> compute_egn(mesh,freq[it],c,egn,KERNEL_TYPE != 0);
+            sol -> compute_egn(mesh,c,egn,KERNEL_TYPE != 0);
 
             // allocate group velocity
             int nc = c.size();
             u.resize(nc);
 
             for(int ic = 0; ic < nc; ic ++) {
-                u[ic] = sol -> group_vel(mesh,freq[it],c[ic],&egn[ic*ng]);
+                u[ic] = sol -> group_vel(mesh,c[ic],&egn[ic*ng]);
                 switch (KERNEL_TYPE) {
                     case 0:
                         sol -> compute_phase_kl(
-                            mesh,freq[it],c[ic],
+                            mesh,c[ic],
                             &egn[ic*ng],frekl
                         );
                         break;
                     case 1:
                         sol -> compute_group_kl(
-                            mesh,freq[it],c[ic],
+                            mesh,c[ic],
                             &egn[ic*ng],frekl
                         );
                         break;
@@ -135,7 +135,7 @@ int main (int argc, char **argv){
 
                 // write displ
                 displ.resize(mesh.ibool_el.size());
-                sol->egn2displ(mesh,freq[it],c[ic],&egn[ic*ng],displ.data());
+                sol->egn2displ(mesh,c[ic],&egn[ic*ng],displ.data());
                 write_binary_f(fio,displ.data(),displ.size());
 
                 // transform kernels
@@ -156,24 +156,24 @@ int main (int argc, char **argv){
             std::vector<scmplx> displ;
 
             // compute eigenvalues
-            sol -> compute_egn_att(mesh,freq[it],c,egn,KERNEL_TYPE != 0);
+            sol -> compute_egn_att(mesh,c,egn,KERNEL_TYPE != 0);
             
             // allocate group velocity
             int nc = c.size();
             u.resize(nc);
 
             for(int ic = 0; ic < nc; ic ++) {
-                u[ic] = sol -> group_vel_att(mesh,freq[it],c[ic],&egn[ic*ng]);
+                u[ic] = sol -> group_vel_att(mesh,c[ic],&egn[ic*ng]);
                 switch (KERNEL_TYPE) {
                     case 0:
                         sol -> compute_phase_kl_att (
-                            mesh,freq[it],c[ic],
+                            mesh,c[ic],
                             &egn[ic*ng],frekl_c,frekl_q
                         );
                         break;
                     case 1:
                         sol -> compute_group_kl_att(
-                            mesh,freq[it],c[ic],u[ic],
+                            mesh,c[ic],u[ic],
                             &egn[ic*ng],frekl_c,frekl_q
                         );
                         break;
@@ -185,12 +185,12 @@ int main (int argc, char **argv){
                 }
 
                 // write T,c,u,mode
-                fprintf(fp,"%d %g %g %g %g %d\n",it,c[ic].real(),c[ic].imag(),
-                                                u[ic].real(),u[ic].imag(),ic);
+                fprintf(fp,"%d %g %g %g %g %d\n",it,c[ic].real(),u[ic].real(),
+                                                c[ic].imag(),u[ic].imag(),ic);
 
                 // write displ
                 displ.resize(mesh.ibool_el.size());
-                sol -> egn2displ_att(mesh,freq[it],c[ic],&egn[ic*ng],displ.data());
+                sol -> egn2displ_att(mesh,c[ic],&egn[ic*ng],displ.data());
                 write_binary_f(fio,displ.data(),displ.size());
 
                 // write kernels

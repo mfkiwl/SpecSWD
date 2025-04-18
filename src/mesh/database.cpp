@@ -29,8 +29,8 @@ compute_minmax_veloc_(float phi,std::vector<float> &vmin,std::vector<float> &vma
             }
             else if (SWD_TYPE == 1) { // rayleigh
                 if(is_el_reg[ig]) {
-                    v0 = std::min(v0,std::min(vsv_tomo[i],vsh_tomo[i]));
-                    v1 = std::max(v1,std::max(vsv_tomo[i],vsh_tomo[i]));
+                    v0 = std::min(v0,vsv_tomo[i]);
+                    v1 = std::max(v1,vsv_tomo[i]);
                 }
                 else {
                     v0 = std::min(v0,vpv_tomo[i]);
@@ -58,11 +58,11 @@ compute_minmax_veloc_(float phi,std::vector<float> &vmin,std::vector<float> &vma
 /**
  * @brief Create SEM database by using input model info
  * 
- * @param freq current frequency
+ * @param freq current frequency, in Hz
  * @param phi directional angle
  */
 void Mesh::
-create_database(float freq,float phi)
+create_database(float freq0,float phi)
 {
     using namespace GQTable;
 
@@ -79,6 +79,7 @@ create_database(float freq,float phi)
     PHASE_VELOC_MIN *= 0.85;
     
     // loop every region to find best element size
+    this -> freq = freq0;
     nspec = 0;
     std::vector<int> nel(nregions - 1);
     for(int ig = 0; ig < nregions - 1; ig ++) {
@@ -139,7 +140,7 @@ create_database(float freq,float phi)
 
     // half space skeleton
     nspec_el_grl = 0; nspec_ac_grl = 0;
-    float scale = PHASE_VELOC_MAX / freq / xgrl[NGRL-1] * 50;  // up to 50 wavelength
+    float scale = PHASE_VELOC_MAX / freq / xgrl[NGRL-1] * 20;  // up to 50 wavelength
     skel[nspec * 2 + 0] = depth_tomo[nz_tomo-1];
     skel[nspec * 2 + 1] = depth_tomo[nz_tomo-1] + xgrl[NGRL-1] * scale;
     iregion_flag[nspec] = nregions - 1;
@@ -182,13 +183,13 @@ create_database(float freq,float phi)
     switch (SWD_TYPE)
     {
     case 0:
-        this -> create_db_love_(freq);
+        this -> create_db_love_();
         break;
     case 1:
-        this -> create_db_rayl_(freq);
+        this -> create_db_rayl_();
         break;
     default:
-        this -> create_db_aniso_(freq);
+        this -> create_db_aniso_();
         break;
     }
 }
@@ -196,10 +197,9 @@ create_database(float freq,float phi)
 
 /**
  * @brief create database for Love wave
- * @param freq current frequency,in Hz
  */
 void Mesh:: 
-create_db_love_(float freq)
+create_db_love_()
 {
     size_t size = ibool_el.size();
 
@@ -230,10 +230,9 @@ create_db_love_(float freq)
 
 /**
  * @brief create database for Love wave
- * @param freq current frequency,in Hz
  */
 void Mesh:: 
-create_db_rayl_(float freq)
+create_db_rayl_()
 {
     size_t size_el = ibool_el.size();
     size_t size_ac = ibool_ac.size();
@@ -285,10 +284,9 @@ create_db_rayl_(float freq)
 
 /**
  * @brief create database for Love wave
- * @param freq current frequency,in Hz
  */
 void Mesh:: 
-create_db_aniso_(float freq)
+create_db_aniso_()
 {
     size_t size_el = ibool_el.size();
     size_t size_ac = ibool_ac.size();

@@ -13,13 +13,13 @@ namespace specswd
  * @param freq current frequency
  * @param c dispersion, shape(nc)
  * @param egn eigen functions(displ at y direction), shape(nc,nglob_el)
- * @param save_qz if true, save QZ matrix
+ * @param use_qz if true, save QZ matrix
  */
 void SolverAni::
 compute_egn(const Mesh &mesh,float freq,
             std::vector<float> &c,
             std::vector<scmplx> &egn,
-            bool save_qz=false)
+            bool use_qz=false)
 {
     typedef Eigen::MatrixX<realw> crmat2;
     using Eigen::all; using Eigen::seq;
@@ -86,7 +86,7 @@ compute_egn(const Mesh &mesh,float freq,
         }
     }
 
-    if(save_qz) {
+    if(use_qz) {
         schur_qz(ng*2,A,B,cQmat_,cZmat_,cSmat_,cSpmat_);
     }
 }
