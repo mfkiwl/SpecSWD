@@ -24,7 +24,7 @@ jobs:
         run: doxygen docs/config.py.cfg
 
       - name: Build Python docs (Sphinx)
-        run: sphinx-build -b html docs/python/ docs/api/python/
+        run: sphinx-build -b html docs/api/python/ docs/api/cpp/
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
