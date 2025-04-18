@@ -1,12 +1,11 @@
-Specd Documentation
-==================================
+Welcome to My Project
+=====================
 
-This is the main page for Specd project
+.. toctree::
+   :maxdepth: 4
+   :caption: Contents:
 
-API Reference
-=============
-.. toctree ::
-    :maxdepth: 2
-    :caption: API Reference
-
-    modules
+   markdown/readme.md
+   markdown/Tutorial.md
+   markdown/gallery.md
+   api/python/index

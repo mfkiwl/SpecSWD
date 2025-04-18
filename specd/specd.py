@@ -15,6 +15,7 @@ def _model_sanity_check(wavetype:str,vph=None,vpv=None,vsh=None,vsv=None,
     pass
 
 class SpecWorkSpace:
+
     def __init__(self,wavetype:str,z:np.ndarray,rho:np.ndarray,
                 vph=None,vpv=None,vsh=None,vsv=None,
                 Qa=None,Qc=None,Qn=None,Ql=None,
@@ -68,7 +69,6 @@ class SpecWorkSpace:
 
         else:
             print("not implemented!")
-        pass
 
     def compute_egn(self,freq:float,max_order:int = -1,use_qz=True) -> np.ndarray:
         """
@@ -126,4 +126,10 @@ class SpecWorkSpace:
             u = libswd.group_vel_att(max_order)
 
         return u
+    
+    def print_info(self):
+        """
+        print required information
+        """
+        return "hello"
         
