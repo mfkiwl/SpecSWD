@@ -60,8 +60,9 @@ set(CMAKE_VERBOSE_MAKEFILE on)
 include_directories(${EIGEN_INC})
 
 # lapack
-set(BLA_VENDOR Generic)
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(LAPACK REQUIRED)
+find_package(LAPACKE REQUIRED)
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DEIGEN_USE_LAPACKE")
 
 ################# include paths #################

@@ -1,7 +1,7 @@
 
 # pylib 
 pybind11_add_module(libswd main.cpp pack.cpp)
-target_link_libraries(libswd PRIVATE vti mesh shared LAPACK::LAPACK -llapacke )
+target_link_libraries(libswd PRIVATE vti mesh shared ${LAPACKE_LIBRARIES} )
 set_target_properties(vti mesh shared  PROPERTIES POSITION_INDEPENDENT_CODE ON)
 #target_include_directories(libswd  PUBLIC ${PROJECT_SOURCE_DIR}/src)
 install(TARGETS libswd
