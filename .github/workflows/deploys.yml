@@ -21,9 +21,10 @@ jobs:
         run: |
           sudo apt install cmake build-essential gfortran liblapack-dev
           git clone https://gitlab.com/libeigen/eigen.git
+          pip install pybind11
           mkdir -p build
           cd build 
-          cmake .. -DCXX=g++ -DFC=gfortran -DEIGEN_INC=./eigen/  -DBUILD_LIBS=ON 
+          cmake .. -DCXX=g++ -DFC=gfortran -DEIGEN_INC=./eigen/  -DBUILD_LIBS=ON  -DPython3_EXECUTABLE=`which python
           make -j4 
           make install
           cd ..
