@@ -78,7 +78,7 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/src/vti)
 # check build libraries
 if(BUILD_LIBS) 
   find_package(Python3 COMPONENTS Interpreter Development)
-  find_package(Pybind11 CONFIG)
+  find_package(pybind11 CONFIG)
   add_subdirectory(src/cps330)
   add_subdirectory(src/libswd)
 endif()
