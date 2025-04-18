@@ -19,7 +19,7 @@ jobs:
 
       - name: Build libaries
         run: |
-          sudo apt install cmake build-essentials gfortran liblapack-dev
+          sudo apt install cmake build-essential gfortran liblapack-dev
           git clone https://gitlab.com/libeigen/eigen.git
           mkdir -p build
           cd build 
