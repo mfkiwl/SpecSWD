@@ -39,7 +39,9 @@ jobs:
           sphinx-apidoc -o docs/api/python ./specd
           
       - name: Build master docs (Sphinx)
-        run: sphinx-build -b html docs/ docs/_build/
+        run: |
+          pip install numpy
+          sphinx-build -b html docs/ docs/_build/
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
