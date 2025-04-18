@@ -16,6 +16,18 @@ jobs:
         run: |
           sudo apt install -y doxygen
           pip install sphinx myst-parser sphinx_rtd_theme 
+
+      - name: Build libaries
+        run: |
+          sudo apt install cmake build-essentials gfortran liblapack-dev
+          git clone https://gitlab.com/libeigen/eigen.git
+          mkdir -p build
+          cd build 
+          cmake .. -DCXX=g++ -DFC=gfortran -DEIGEN_INC=./eigen/  -DBUILD_LIBS=ON 
+          make -j4 
+          make install
+          cd ..
+          
           
       - name: Build Doxygen C++ API Docs
         run: doxygen docs/api/cpp/config.cfg

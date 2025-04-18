@@ -21,7 +21,7 @@ compute_egn(const Mesh &mesh,
             bool use_qz)
 {
     typedef Eigen::MatrixX<realw> rmat2;
-    using Eigen::all;
+    using Eigen::indexing::all;
 
     // mapping M,K,E to matrix
     int ng = mesh.nglob_el;
@@ -130,7 +130,7 @@ compute_egn_att(const Mesh &mesh,
     k = k.sqrt();
 
     // filter SWD 
-    using Eigen::all;
+    using Eigen::indexing::all;
     Eigen::ArrayX<crealw> c_all = om / k;
     auto mask = ((c_all.real() >= mesh.PHASE_VELOC_MIN)&& 
                 (c_all.real() <= mesh.PHASE_VELOC_MAX) && 
@@ -220,7 +220,7 @@ compute_egn(const Mesh &mesh,
     Eigen::ArrayX<crealw> k = ((alphar + imag_i * alphai) / beta).sqrt();
 
     // filter SWD 
-    using Eigen::all;
+    using Eigen::indexing::all;
     Eigen::ArrayX<realw> c_all = (om / k).real();
     auto mask = ((c_all >= mesh.PHASE_VELOC_MIN)&& 
                 (c_all <= mesh.PHASE_VELOC_MAX) && 
@@ -310,7 +310,7 @@ compute_egn_att(const Mesh &mesh,
     Eigen::ArrayX<crealw> k = (alpha / beta).sqrt();
     
     // filter SWD 
-    using Eigen::all;
+    using Eigen::indexing::all;
     Eigen::ArrayX<crealw> c_all = om / k;
     auto mask = ((c_all.real() >= mesh.PHASE_VELOC_MIN)&& 
                 (c_all.real() <= mesh.PHASE_VELOC_MAX) && 
