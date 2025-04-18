@@ -15,9 +15,9 @@ const std::array<double,NSLS> w_sls_ref = {4.71238898e-02, 6.63370885e-01, 9.424
 
 /**
  * @brief correct y from reference model to target model
- * 
  * @param Q target Q 
  * @param y_sls reference y_sls parameters
+ * @param w_sls reference w_sls
  */
 static void 
 get_Q_sls_model(float Q,double *y_sls,double *w_sls)
@@ -43,7 +43,7 @@ get_Q_sls_model(float Q,double *y_sls,double *w_sls)
  * @brief get SLS Q terms on the elastic modulus
  * 
  * @param freq current frequency
- * @param Qa Qvalue 
+ * @param Q Q value 
  * @return s modulus factor  mu = mu * s 
  */
 crealw get_sls_modulus_factor(float freq,float Q)
@@ -277,9 +277,10 @@ void get_C21_att(float freq,const float *Qm,int nQmodel,
  * @brief compute derivatives of C21 att model
  * @param freq frequency
  * @param Qm Q values
+ * @param C21 C21 model
  * @param nQmodel number of Q values
  * @param dCC21_dc derivative of complex c21 to real c21, shape (21,21)
- * @param dCC21_dqi derivative of complex c21 to Qi, shape (21,nQmodel)
+ * @param dCC21_dQi derivative of complex c21 to Qi, shape (21,nQmodel)
  * @param funcid function id, default 1
  */
 void get_C21_deriv(float freq,const float *Qm,int nQmodel,

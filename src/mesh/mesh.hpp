@@ -8,6 +8,10 @@
 namespace specswd
 {
 
+/**
+ * @brief SEM mesh class
+ * 
+ */
 struct Mesh {
 
     // SEM Mesh

@@ -17,9 +17,9 @@ namespace specswd
 
 /**
  * @brief convert df_complx/dm to df_real/dm and dfQi_dm, where f_complx = f_real (1 + 0.5 i * fQi) = f_real + i f_imag
- * @param dfdm, Frechet kernel for some quantity, rst m
- * @param f  user defiend quantity
- * @param dcLdm,dQiLdm dc / dm and dQi / dm
+ * @param npts size of frekl_r
+ * @param f_cmplx user defiend quantity
+ * @param frekl_r,frekl_i real/imag parts of derivatives
  */
 void inline
 get_fQ_kl(int npts,std::complex<float> f_cmplx,
@@ -36,118 +36,20 @@ get_fQ_kl(int npts,std::complex<float> f_cmplx,
     }
 }
 
-// /**
-//  * @brief compute coef * y^H @ d( A - alpha B)/dm_i @ x dm_i, where A = om^2 M-E, B=K
-//  * @param freq current frequency
-//  * @param c current phase velocity
-//  * @param coef scaling factor 
-//  * @param egn eigen vector,shape(nglob_el)
-//  * @param nspec_el/nglob_el mesh nelemnts/unique points for elastic
-//  * @param ibool_el elastic connectivity matrix, shape(nspec_el*NGLL+NGRL)
-//  * @param jaco jacobian matrix, shape (nspec_el + 1)
-//  * @param xN/xL/xQN/xQL/rho model parameters, shape(nspec_el*NGLL+NGRL)
-//  * @param frekl_r real part of this operation, in which m = (N/L/rho) (elastic) or m = (N/L/QN/QL/rho) (anelstic)
-//  * @param frekl_i imag part of this operation, in which nullptr or imag part of (N/L/QN/QL/rho) (anelstic)
-//  */
-// template<typename T = float > 
-// void love_deriv_op(float freq, T c, T coef,const T *y,const T *x, 
-//                     int nspec_el,int nglob_el, const int *ibool_el,
-//                     const float *jaco, const float *xN,
-//                     const float *xL,const float *xQN, 
-//                     const float *xQL, float * __restrict frekl_r,
-//                     float * __restrict frekl_i)
-// {
-//     // check template type
-//     static_assert(std::is_same_v<float,T> || std::is_same_v<std::complex<float>,T>);
-
-//     using namespace GQTable;
-//     std::array<T,NGRL> rW,lW;
-//     size_t size = nspec_el*NGLL + NGRL;
-//     T om = 2 * M_PI * freq;
-//     T k2 = (om * om) / (c * c);
-//     for(int ispec = 0; ispec < nspec_el + 1; ispec ++) {
-//         const float *hp = &hprime[0];
-//         const float *w = &wgll[0];    
-//         float J = jaco[ispec]; // jacobians in this layers
-//         int NGL = NGLL;
-//         int id = ispec * NGLL;
-
-//         // GRL layer
-//         if(ispec == nspec_el) {
-//             hp = &hprime_grl[0];
-//             w = &wgrl[0];
-//             NGL = NGRL;
-//         }
-
-//         // cache displ in a element
-//         for(int i = 0; i < NGL; i ++) {
-//             int iglob = ibool_el[id+i];
-//             rW[i] = x[iglob] * coef;
-//             lW[i] = y[iglob];
-//             if constexpr (std::is_same_v<T,std::complex<float>>) {
-//                 lW[i] = std::conj(lW[i]);
-//             }
-//         }
-
-//         // compute kernels
-//         T dc_drho{}, dc_dN{}, dc_dL{};
-//         T dc_dqni{}, dc_dqli{};
-//         T sn = 1., sl = 1.;
-//         T dsdqni{}, dsdqli{};
-//         for(int m = 0; m < NGL; m ++) {
-//             dc_drho = w[m] * J * om * om * rW[m] * lW[m];
-
-//             // get sls derivative if required
-//             if constexpr (std::is_same_v<T,std::complex<float>>) {
-//                 get_sls_Q_derivative(freq,xQN[id+m],sn,dsdqni);
-//                 get_sls_Q_derivative(freq,xQL[id+m],sl,dsdqli);
-//                 dsdqni *= xN[id+m];
-//                 dsdqli *= xL[id+m];
-//             }
-
-//             // N kernel
-//             T temp = -k2 * rW[m] * lW[m]  * J * w[m];
-//             dc_dN = temp * sn;
-//             dc_dqni = temp * dsdqni;
-
-//             // L kernel
-//             T sx{},sy{};
-//             for(int i = 0; i < NGL; i ++) {
-//                 sx += hp[m*NGL+i] * rW[i];
-//                 sy += hp[m*NGL+i] * lW[i];
-//             }
-//             temp = -sx * sy * w[m] / J;
-//             dc_dL = temp * sl;
-//             dc_dqli = temp * dsdqli;
-
-//             // copy to frekl
-//             int id1 = id + m;
-//             if constexpr (std::is_same_v<T,std::complex<float>>) {
-//                 GET_REAL(dc_dN,0); GET_REAL(dc_dL,1);
-//                 GET_REAL(dc_dqni,2); GET_REAL(dc_dqli,3);
-//                 GET_REAL(dc_drho,4);
-//             }
-//             else {
-//                 frekl_r[0*size+id1] = dc_dN;
-//                 frekl_r[1*size+id1] = dc_dL;
-//                 frekl_r[2*size+id1] = dc_drho;
-//             }
-//         }
-//     }
-// }
-
 /**
  * @brief compute y^H @ d(c_M * M + c_K * K + c_E * E )/dm_i @ x dm_i where
- * @tparam Mname which matrix you want to find derivative M/K/E = 1,2,3
- * @param freq current frequency
- * @param c_M,c_K,C_E scaling coefs for each matrix
- * @param y/x left/right eigen vector,shape(nglob_el)
- * @param nspec_el/nglob_el mesh nelemnts/unique points for elastic
- * @param ibool_el elastic connectivity matrix, shape(nspec_el*NGLL+NGRL)
- * @param jaco jacobian matrix, shape (nspec_el + 1)
- * @param xN/xL/xQN/xQL/rho model parameters, shape(nspec_el*NGLL+NGRL)
- * @param frekl_r dc/d(N/L/rho) (elastic) or dc/d(N/L/QN/QL/rho) (anelstic)
- * @param frekl_i nullptr or dqc/d(N/L/QN/QL/rho) (anelstic)
+ * @param c_M,c_K,c_E coefs for each matrix
+ * @param y,x vectors, shape_like(eigenvector)
+ * @param freq input data type, float or complex<float>
+ * @param nspec_el no. of elastic GLL elements
+ * @param nglob_el unique points in elastic domain
+ * @param ibool_el  connectivity matrix,in el shape(nspec_?*NGLL+nspec_?_grl*NGRL)
+ * @param jaco jacobians, shape(nspec_ac+nspec_el+1)
+ * @param xN VTI N parameter, in el
+ * @param xL VTI L parameter, in el
+ * @param xQN VTI Qn parameter, in el
+ * @param xQL VTI Ql parameter, in el
+ * @param frekl_r,frekl_i real/imaginary parts of derivatives
  */
 template<typename T = float > void 
 love_op_matrix(float freq,T c_M, T c_K,T c_E, const T *y,const T *x, 
@@ -230,20 +132,35 @@ love_op_matrix(float freq,T c_M, T c_K,T c_E, const T *y,const T *x,
 }
 
 /**
- * @brief compute y^H @ d(c_M * M + c_K * K + c_E * E )/dm_i @ x dm_i where
- * @param freq current frequency
- * @param c_M,c_K,C_E scaling coefs for each matrix
- * @param y/x  dot vector,shape(nglob_el*2+nglob_ac)
- * @param nspec_el/nglob_el mesh nelemnts/unique points for elastic
- * @param nspec_ac/nglob_ac mesh nelemnts/unique points for acoustic
- * @param nspec_el/ac_grl no. of GRL elements
- * @param ibool_el elastic connectivity matrix, shape(nspec_el*NGLL+nspec_el_grl*NGRL)
- * @param ibool_ac elastic connectivity matrix, shape(nspec_ac*NGLL+nspec_ac_grl*NGRL)
- * @param jaco jacobian matrix, shape (nspec_el + 1)
- * @param xA/xC/xL/xeta/xQA/xQC/xQL/xrho elastic model parameters,ibool_el.shape
- * @param xkappa_ac/xQk_ac/xrho_ac acoustic model parameters, ibool_ac.shape 
- * @param frekl_r dc/d(A/C/L/kappa/rho) (elastic) or dc/d(A/C/L/QA/QC/QL/kappa/Qk/rho) (anelstic)
- * @param frekl_i nullptr or dqc/d(A/C/L/QA/QC/QL/kappa/Qk/rho) (anelstic)
+ * @brief  compute y^H @ d(c_M * M + c_K * K + c_E * E )/dm_i @ x dm_i where
+ * 
+ * @tparam T data type, float or complex<float>
+ * @param c_M,c_K,c_E coefs for each matrix
+ * @param y,x vectors, shape_like(eigenvector)
+ * @param freq input data type, float or complex<float>
+ * @param nspec_el no. of elastic GLL elements
+ * @param nspec_ac no. of acoustic GLL elements
+ * @param nspec_el_grl  no. of elastic GRL elements
+ * @param nspec_ac_grl no. of acoustic GRL elements
+ * @param nglob_el unique points in elastic domain
+ * @param nglob_ac unique points in acoustic domain
+ * @param el_elmnts mapping from el elements to global index
+ * @param ac_elmnts mapping from ac elements to global index
+ * @param xrho_el density in elastic domain
+ * @param xrho_ac density in acoustic domain
+ * @param ibool_el  connectivity matrix,in el shape(nspec_?*NGLL+nspec_?_grl*NGRL)
+ * @param ibool_ac connectivity matrix,in ac shape(nspec_?*NGLL+nspec_?_grl*NGRL)
+ * @param jaco jacobians, shape(nspec_ac+nspec_el+1)
+ * @param xA VTI A parameter, in el
+ * @param xC VTI C parameter, in el
+ * @param xL VTI L parameter, in el
+ * @param xeta VTI eta parameter, in el
+ * @param xQA VTI Qa parameter, in el
+ * @param xQC VTI Qc parameter, in el
+ * @param xQL VTI Ql parameter, in el
+ * @param xkappa_ac kappa in ac domain
+ * @param xQk_ac Qkappa, in ac domain
+ * @param frekl_r,frekl_i real/imaginary parts of derivatives
  */
 template<typename T = float >
 void

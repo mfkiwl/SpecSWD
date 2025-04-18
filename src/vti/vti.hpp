@@ -59,7 +59,7 @@ public:
                         std::vector<float> &frekl_q) const;
     // tranforms
     void egn2displ(const Mesh &M,float c,
-                    const float*egn, float * __restrict displ) const;
+                    const float *egn, float * __restrict displ) const;
     void egn2displ_att(const Mesh &M,scmplx c,const scmplx *egn,
                       scmplx * __restrict displ) const;
     void transform_kernels(const Mesh &M,std::vector<float> &frekl) const;

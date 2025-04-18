@@ -8,14 +8,14 @@ extern "C" {
 void 
 specswd_init_GQTable();
 
-void 
+void
 specswd_init_mesh_love(
     int nz, const float *z,const float *rho,const float *vsh,
     const float *vsv,const float *QN, const float *QL,
     bool HAS_ATT,bool print_tomo_info
 );
 
-extern "C" void 
+void 
 specswd_init_mesh_rayl(
     int nz, const float *z,const float *rho,
     const float *vph,const float* vpv,const float *vsv,
@@ -23,16 +23,16 @@ specswd_init_mesh_rayl(
     bool HAS_ATT,bool print_tomo_info
 );
 
-extern "C" void 
+void 
 specswd_egn_love(float freq,bool use_qz);
 
-extern "C" void 
+void 
 specswd_egn_rayl(float freq,bool use_qz);
 
-extern "C" void 
+void 
 specswd_group_love();
 
-extern "C" void 
+void 
 specswd_group_rayl();
 
 

@@ -15,7 +15,7 @@ get_sls_Q_derivative(float freq,float Qm,std::complex<float> &s,
                     std::complex<float> &dsdqi);
 
 void get_C21_att(float freq,const float *Qm,int nQmodel,
-                       std::complex<float>* __restrict c21,
+                       std::complex<float> * c21,
                        int funcid=1);
 
 

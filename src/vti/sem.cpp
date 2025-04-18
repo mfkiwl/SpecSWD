@@ -9,14 +9,14 @@ namespace specswd
 
 /**
  * @brief prepare M/K/E matrices for Love wave
- * @tparam T input data type, float/complex<float>
+ * @tparam T input data type, float or complex<float>
  * @param freq current frequency
  * @param nspec # of elastic GLL elements
  * @param nglob_el unique points in elastic domain
  * @param ibool_el connectivity matrix, shape(nspec*NGLL+NGRL)
  * @param jaco jacobians, shape(nspec+1)
  * @param xL/xN/xQL/xQN/xrho  L/N/QL/QN/rho shape(nspec*NGLL+NGRL)
- * @param MMAT/KMAT/EMAT M/K/E matrices
+ * @param Mmat/Kmat/Emat M/K/E matrices
  */
 template<typename T = scmplx>
 static void 
@@ -95,25 +95,40 @@ void SolverLove::prepare_matrices(const Mesh &M)
     }
 }
 
-
 /**
  * @brief prepare M/K/E matrices for Love wave
- * @tparam T input data type, float/complex<float>
- * @param freq current frequency
- * @param nspec_el/ac # of elastic/acoustic GLL elements
- * @param nspec_el/ac_grl # of elastic/acoustic GRL elements
- * @param el/ac_elmnts mapping from el/ac elements to global index
- * @param nglob_el/ac unique points in elastic/acoustic domain
- * @param ibool_el/ac connectivity matrix, shape(nspec_?*NGLL+nspec_?_grl*NGRL)
+ * 
+ * @tparam T 
+ * @param freq input data type, float or complex<float>
+ * @param nspec_el no. of elastic GLL elements
+ * @param nspec_ac no. of acoustic GLL elements
+ * @param nspec_el_grl  no. of elastic GRL elements
+ * @param nspec_ac_grl no. of acoustic GRL elements
+ * @param nglob_el unique points in elastic domain
+ * @param nglob_ac unique points in acoustic domain
+ * @param el_elmnts mapping from el elements to global index
+ * @param ac_elmnts mapping from ac elements to global index
+ * @param xrho_el density in elastic domain
+ * @param xrho_ac density in acoustic domain
+ * @param ibool_el  connectivity matrix,in el shape(nspec_?*NGLL+nspec_?_grl*NGRL)
+ * @param ibool_ac connectivity matrix,in ac shape(nspec_?*NGLL+nspec_?_grl*NGRL)
  * @param jaco jacobians, shape(nspec_ac+nspec_el+1)
- * @param xA/xC/xL/xeta/xQA/xQC/xQL/xkappa_ac/xrho_el/xrho_ac model parameters shape(nspec?*NGLL+nspec_?_grl*NGRL)
+ * @param xA VTI A parameter, in el
+ * @param xC VTI C parameter, in el
+ * @param xL VTI L parameter, in el
+ * @param xeta VTI eta parameter, in el
+ * @param xQA VTI Qa parameter, in el
+ * @param xQC VTI Qc parameter, in el
+ * @param xQL VTI Ql parameter, in el
+ * @param xkappa_ac kappa in ac domain
+ * @param xQk_ac Qkappa, in ac domain
  * @param nfaces_bdry no. of el-ac interfaces
  * @param ispec_bdry element index on each side, (ispec_ac,ispec_el) = ispec_bdry[i,:], shape(nfaces_bdry,2)
  * @param bdry_norm_direc if the ac-> el normal vector is downward
- * @param MMAT/KMAT/EMAT M/K/E matrices
+ * @param Mmat/Kmat/Emat M/K/E matrices
  */
-template<typename T = scmplx>
-static void 
+template<typename T>
+void 
 prepare_rayl_(float freq,int nspec_el,int nspec_ac,
                 int nspec_el_grl,int nspec_ac_grl,int nglob_el,int nglob_ac,
                 const int *el_elmnts,const int *ac_elmnts,
@@ -283,7 +298,7 @@ prepare_rayl_(float freq,int nspec_el,int nspec_ac,
 
 /**
  * @brief preparing M/K/E matrices for Rayleigh wave
- * @param mesh Mesh class
+ * @param M Mesh class
  */
 void SolverRayl::prepare_matrices(const Mesh &M)
 {

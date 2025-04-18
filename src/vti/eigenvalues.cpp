@@ -9,7 +9,7 @@ namespace specswd {
 
 /**
  * @brief compute Love wave dispersion and eigenfunctions, elastic case
- * 
+ * @param mesh Mesh class
  * @param c dispersion, shape(nc)
  * @param egn eigen functions(displ at y direction), shape(nc,nglob_el)
  * @param use_qz if false, only compute phase velocities
@@ -91,9 +91,9 @@ compute_egn(const Mesh &mesh,
 
 /**
  * @brief compute rayleigh wave dispersion and eigenfunctions, visco-elastic case
- * 
+ * @param mesh Mesh class
  * @param c dispersion, shape(nc) c = c0(1 + iQL^{-1})
- * @param egn eigen functions(displ at y direction), shape(nc,nglob_el)
+ * @param displ eigen functions(displ at y direction), shape(nc,nglob_el)
  * @param use_qz if true, save QZ matrix
  */
 void SolverLove::
@@ -177,7 +177,7 @@ compute_egn_att(const Mesh &mesh,
 
 /**
  * @brief compute rayleigh wave dispersion and eigenfunctions, elastic case
- * 
+ * @param mesh Mesh class
  * @param c dispersion, shape(nc) c = c0(1 + iQL^{-1})
  * @param ur/ul left/right eigenvectors, shape(nc,nglob_el*2+nglob_ac)
  * @param use_qz if true, save QZ matrix
@@ -266,7 +266,7 @@ compute_egn(const Mesh &mesh,
 
 /**
  * @brief compute rayleigh wave dispersion and eigenfunctions, visco-elastic case
- * 
+ * @param mesh Mesh class
  * @param c dispersion, shape(nc) c = c0(1 + iQL^{-1})
  * @param ur/ul left/right eigenvectors, shape(nc,nglob_el*2+nglob_ac)
  * @param use_qz if true, save QZ matrix

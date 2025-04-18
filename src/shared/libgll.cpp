@@ -15,7 +15,7 @@
  * @brief compute the Lagrange interpolants based upon the interpolation points   
  * 
  * @param xi current location,
- * @param nctrl no. of control points 
+ * @param NCTRL no. of control points 
  * @param xctrl control nodes, shape (nctrl) 
  * @param h polynomial value, shape (nctrl)
  * @param hprime derivative, shape (nctrl)

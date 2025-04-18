@@ -10,9 +10,9 @@ namespace specswd
 
 /**
  * @brief compute group velocity and kernels for love wave group velocity, elastic case
- * 
+ * @param mesh Mesh class
  * @param c  current phase velocity
- * @param displ eigen function, shape(nglob_el)
+ * @param egn eigen function, shape(nglob_el)
  * @param frekl Frechet kernels (N/L/rho) for elastic parameters, shape(3,nspec*NGLL + NGRL) 
  */
 void SolverLove::
@@ -97,7 +97,7 @@ compute_group_kl(const Mesh &mesh,
 
 /**
  * @brief compute group velocity and kernels for rayleigh wave group velocity, elastic case
- * 
+ * @param mesh Mesh class
  * @param c  current phase velocity
  * @param ur/ul right/left eigen function, shape(nglob_el*2+nglob_ac)
  * @param frekl Frechet kernels (A/C/L/kappa/rho) for elastic parameters, shape(5,nspec*NGLL + NGRL) 
@@ -227,10 +227,10 @@ compute_group_kl(const Mesh &mesh,
 
 /**
  * @brief compute love wave group velocity kernels, visco-elastic case
- * 
+ * @param mesh Mesh class
  * @param c  current complex phase velocity
  * @param u  current complex group velocity
- * @param displ eigen function, shape(nglob_el)
+ * @param egn eigen function, shape(nglob_el)
  * @param frekl_u dRe(u)/d(N/L/QN/QL/rho) shape(5,nspec*NGLL + NGRL) 
  * @param frekl_q d(qi)/d(N/L/QN/QL/rho) shape(5,nspec*NGLL + NGRL) 
  */
@@ -327,7 +327,7 @@ compute_group_kl_att(const Mesh &mesh,
 
 /**
  * @brief compute love wave group velocity kernels, visco-elastic case
- * 
+ * @param mesh Mesh class
  * @param c  current complex phase velocity
  * @param u  current complex group velocity
  * @param ur/ul right/left eigen function, shape(nglob_el*2+nglob_ac)

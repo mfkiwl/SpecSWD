@@ -10,7 +10,7 @@ namespace specswd
  * 
  * @param z depth list, shape(nlayer)
  * @param z0 current loc, must be inside z 
- * @param nlayer 
+ * @param nz sizeof z
  * @return int location of z0 in z, satisfies  z0 >= z[i] && z0 < z[i + 1]
  */
 static int 

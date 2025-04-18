@@ -21,12 +21,28 @@ void egn2displ_love_(int nspec,const int *ibool_el,const T *egn,
     }   
 }
 
+/**
+ * @brief convert eigenvector to displacement,elastic case
+ * 
+ * @param M mesh class
+ * @param c current phase velocity
+ * @param egn eigenvector
+ * @param displ output displacement, shape(nspec*NGLL+NGRL)
+ */
 void SolverLove::
 egn2displ(const Mesh &M,float c, const float *egn,float * __restrict displ ) const 
 {
     egn2displ_love_(M.nspec,M.ibool_el.data(),egn,displ);
 }
 
+/**
+ * @brief convert eigenvector to displacement, visco-elastic case
+ * 
+ * @param M mesh class
+ * @param c current phase velocity
+ * @param egn eigenvector
+ * @param displ output displacement, shape(nspec*NGLL+NGRL)
+ */
 void SolverLove::
 egn2displ_att(const Mesh &M,scmplx c, const scmplx *egn,scmplx * __restrict displ ) const 
 {
@@ -148,6 +164,7 @@ egn2displ_att(const Mesh &M,scmplx c, const scmplx *egn,scmplx * __restrict disp
 
 /**
  * @brief transform modulus kernel to velocity kernel, Love wave case
+ * @param M mesh class
  * @param frekl frechet kernels, the shape depends on:
  *   - `1`: elastic love wave: N/L/rho -> vsh/vsv/rho  
  *   - `2`: anelastic love wave: N/L/QNi/QLi/rho -> vsh/vsv/QNi/QLi/rho 
@@ -194,6 +211,7 @@ transform_kernels(const Mesh &M,std::vector<float> &frekl) const
 
 /**
  * @brief transform modulus kernel to velocity kernel, Rayleigh wave case
+ * @param M mesh class
  * @param frekl frechet kernels, the shape depends on:
  *   - `1`: elastic rayleigh wave: A/C/L/eta/kappa/rho -> vph/vpv/vsv/eta/vp/rho  
  *   - `2` anelastic rayleigh wave: A/C/L/eta/QAi/QCi/QLi/kappa/Qki/rho -> vph/vpv/vsv/eta/QAi/QCi/QLi/vp/Qki/rho 

@@ -10,10 +10,9 @@ namespace specswd
 
 /**
  * @brief compute love wave phase velocity kernels, elastic case
- * 
- * @param freq current frequency
+ * @param M Mesh clas
  * @param c  current phase velocity
- * @param displ eigen function, shape(nglob_el)
+ * @param egn eigen function, shape(nglob_el)
  * @param frekl Frechet kernels (N/L/rho) for elastic parameters, shape(3,nspec*NGLL + NGRL) 
  */
 void SolverLove:: 
@@ -50,9 +49,9 @@ compute_phase_kl(const Mesh &M,
 
 /**
  * @brief compute love wave phase velocity kernels, visco-elastic case
- * 
+ * @param M mesh class
  * @param c  current complex phase velocity
- * @param displ eigen function, shape(nglob_el)
+ * @param egn eigen function, shape(nglob_el)
  * @param frekl_c dRe(c)/d(N/L/QN/QL/rho) shape(5,nspec*NGLL + NGRL) 
  * @param frekl_q d(qi)/d(N/L/QN/QL/rho) shape(5,nspec*NGLL + NGRL) 
  */
@@ -100,7 +99,7 @@ compute_phase_kl_att(const Mesh &M,
 
 /**
  * @brief compute Rayleigh wave phase kernels, elastic case
- * 
+ * @param M mesh class
  * @param c  current phase velocity
  * @param ur/ul right/left eigen function, shape(nglob_el*2+nglob_ac)
  * @param frekl Frechet kernels A/C/L/eta/kappa/rho_kl kernels for elastic parameters, shape(6,nspec*NGLL + NGRL) 
@@ -146,7 +145,7 @@ compute_phase_kl(const Mesh &M,
 
 /**
  * @brief compute Rayleigh wave phase kernels, visco-elastic case
- * 
+ * @param M mesh class
  * @param c  current phase velocity
  * @param ur/ul right/left eigen function, shape(nglob_el*2+nglob_ac)
  * @param frekl_c dRe(c)/d(A/C/L/eta/Qa/Qc/Ql/kappa/Qk/rho) kernels for elastic parameters, shape(10,nspec*NGLL + NGRL) 

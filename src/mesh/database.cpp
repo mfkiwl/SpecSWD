@@ -58,7 +58,7 @@ compute_minmax_veloc_(float phi,std::vector<float> &vmin,std::vector<float> &vma
 /**
  * @brief Create SEM database by using input model info
  * 
- * @param freq current frequency, in Hz
+ * @param freq0 current frequency, in Hz
  * @param phi directional angle
  */
 void Mesh::

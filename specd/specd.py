@@ -53,6 +53,7 @@ class SpecWorkSpace:
         """
 
         self._wavetype = wavetype.lower()
+        self._use_qz = False
         assert(self._wavetype in ['love','rayl','aniso'])
 
         _model_sanity_check(wavetype,vpv,vph,vsv,vsh,Qa,
@@ -88,6 +89,10 @@ class SpecWorkSpace:
         c: np.ndarray
             phase velocities
         """
+
+        # save use_qz
+        self._use_qz = use_qz
+
         if self._has_att:
             c = libswd.compute_egn_att(freq,max_order,use_qz)
         else:
@@ -95,4 +100,30 @@ class SpecWorkSpace:
 
         return c
 
+    def group_velocity(self,max_order:int = -1) -> np.ndarray:
+        """
+        compute group velocites
+
+        Parameters
+        ----------
+        max_order: int
+            no. of orders returns
+
+        Returns
+        --------
+        u: np.ndarray
+            group velocities at current frequency
+
+        Note
+        ----------
+        before calling this routine, use_qz should be True in self.compute_egn
+        """
+        assert self._use_qz ,"please enable use_qz in self.compute_egn"
+
+        if self._has_att:
+            u = libswd.group_vel(max_order)
+        else:
+            u = libswd.group_vel_att(max_order)
+
+        return u
         
