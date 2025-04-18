@@ -18,7 +18,7 @@ jobs:
           pip install sphinx myst-parser sphinx_rtd_theme 
           
       - name: Build Doxygen C++ API Docs
-        run: doxygen docs/api/cpp/config.cpp.cfg
+        run: doxygen docs/api/cpp/config.cfg
 
       - name: Build Python docs (Sphinx)
         run: |
