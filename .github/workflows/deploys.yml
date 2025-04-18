@@ -16,6 +16,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake build-essential gfortran liblapack-dev
+          pip install pybind11-global
           mkdir build
           cd build
           cmake .. -DCXX=g++ -DFC=gfortran -DBUILD_LIBS=ON
