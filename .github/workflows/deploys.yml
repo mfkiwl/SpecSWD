@@ -12,17 +12,6 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Install build tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake build-essential gfortran liblapack-dev
-          pip install pybind11-global
-          mkdir build
-          cd build
-          cmake .. -DCXX=g++ -DFC=gfortran -DBUILD_LIBS=ON
-          make -j4
-          make install
-
       - name: Install doc tools
         run: |
           sudo apt install -y doxygen
