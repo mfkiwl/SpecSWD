@@ -125,7 +125,7 @@ void SolverLove::prepare_matrices(const Mesh &M)
  * @param nfaces_bdry no. of el-ac interfaces
  * @param ispec_bdry element index on each side, (ispec_ac,ispec_el) = ispec_bdry[i,:], shape(nfaces_bdry,2)
  * @param bdry_norm_direc if the ac-> el normal vector is downward
- * @param Mmat/Kmat/Emat M/K/E matrices
+ * @param Mmat,Kmat,Emat M/K/E matrices
  */
 template<typename T>
 void 
@@ -243,7 +243,6 @@ prepare_rayl_(float freq,int nspec_el,int nspec_ac,
             int iglob = ig0 + nglob_el * 2;
             T temp = weight[i] * J;
 
-
             // assemble M and K
             T sk = 1.;
             if constexpr (std::is_same_v<T,scmplx>) {
@@ -286,12 +285,12 @@ prepare_rayl_(float freq,int nspec_el,int nspec_ac,
 
         // add contribution to E mat, elastic case
         // E(nglob_el + iglob_el, nglob_el*2 + iglob_ac) += 
-        int id = (nglob_el*2 + iglob_el) * ng + (nglob_el * 3 + iglob_ac);
+        int id = (nglob_el + iglob_el) * ng + (nglob_el * 2 + iglob_ac);
         Emat[id] += (T)(om * om * norm);
         
         // acoustic case
         // E(nglob_el*2 + iglob_ac, nglob_el + iglob_el) += norm
-        id = (nglob_el*3 + iglob_ac) * ng + (nglob_el*2 + iglob_el);
+        id = (nglob_el*2 + iglob_ac) * ng + (nglob_el + iglob_el);
         Emat[id] += (T)norm;
     }
 }

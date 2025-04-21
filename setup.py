@@ -1,4 +1,20 @@
 from setuptools import setup, find_packages
+import os 
+import shutil
+from distutils.command.clean import clean as Clean
+
+class CleanCommand(Clean):
+    def run(self):
+        Clean.run(self)
+        for path in [ 'dist', '*.egg-info']:
+            if os.path.isdir(path):
+                print(f"Removing {path}")
+                shutil.rmtree(path)
+            else:
+                # Glob match for *.egg-info (in case of project_name.egg-info)
+                for p in [p for p in os.listdir('.') if p.endswith('.egg-info')]:
+                    print(f"Removing {p}")
+                    shutil.rmtree(p)
 
 setup(
     name="specd",
@@ -31,4 +47,9 @@ setup(
     license="MIT",
     include_package_data=True,
     zip_safe=False,
+
+    # your existing setup() config...
+    cmdclass={
+        'clean': CleanCommand,
+    },
 )

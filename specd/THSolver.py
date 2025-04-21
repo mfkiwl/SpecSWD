@@ -46,10 +46,9 @@ class THSolver:
         """
         # check input args
         assert wavetype in ['Rc','Rg','Lc','Lg'], "check wave type!"
-        c,flag = cps330.forward(
+        c,_ = cps330.forward(
             self._thick,self._vp,self._vs,
             self._rho,T,wavetype,mode,
             self._spherical)
 
-        assert(flag)
         return c

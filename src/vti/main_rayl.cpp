@@ -102,7 +102,7 @@ int main (int argc, char **argv){
             std::vector<float> displ;
 
             // compute eigenvalue
-            sol -> compute_egn(mesh,c,ur,ul,KERNEL_TYPE != 0);
+            sol -> compute_egn(mesh,c,ur,ul,true);
 
             // allocate group velocity
             int nc = c.size();
@@ -157,7 +157,7 @@ int main (int argc, char **argv){
             std::vector<scmplx> displ;
 
             // compute eigenvalues
-            sol -> compute_egn_att(mesh,c,ur,ul,KERNEL_TYPE != 0);
+            sol -> compute_egn_att(mesh,c,ur,ul,true);
             
             // allocate group velocity
             int nc = c.size();

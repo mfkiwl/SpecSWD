@@ -1,11 +1,11 @@
 #include "vti/vti.hpp"
-
 #include "shared/schur.hpp"
 
 #include <algorithm>
 #include <iostream>
 
 namespace specswd {
+
 
 /**
  * @brief compute Love wave dispersion and eigenfunctions, elastic case
@@ -28,29 +28,45 @@ compute_egn(const Mesh &mesh,
     Eigen::Map<const Eigen::VectorXf> M(Mmat.data(),ng);
     Eigen::Map<const Eigen::VectorXf> K(Kmat.data(),ng);
     Eigen::Map<const Eigen::Matrix<float,-1,-1,1>> E(Emat.data(),ng,ng);
-    
-    // construct A  = (om^2 M - E), B = K
+
+    // constants
     float freq = mesh.freq;
     realw om = 2. * M_PI * freq; 
     realw omega2 = std::pow(om,2);
-    rmat2 A = rmat2(((realw)1. / K.array()).matrix().cast<realw>().asDiagonal()) *
-             (-E.cast<realw>() + rmat2(M.cast<realw>().asDiagonal() * omega2));
-    rmat2 displ_all = A * 0.;
 
-    // get eigen values/eigen vectors
-    Eigen::Array<realw,-1,1> kr(ng),ki(ng);
-    LAPACKE_REAL(geev)(
-        LAPACK_COL_MAJOR,'N','V',ng,A.data(),
-        ng,kr.data(),ki.data(),nullptr,
-        ng,displ_all.data(),ng
-    );
+    // allocate eigenvalues and eigenvectors
+    Eigen::ArrayX<realw> k2_all(ng); 
+    Eigen::ArrayX<crealw> k_all(ng);
+    rmat2 vsr;
+
+    // A/B matrix 
+    rmat2 A = -E.cast<realw>() + rmat2(M.cast<realw>().asDiagonal()* omega2);
+    rmat2 B = rmat2(K.cast<realw>().asDiagonal());
+
+    // compute eigenvalues/vectors
+    if(!use_qz) { // only compute phase velocities
+        // note A and B are symmetric, and definite-positive ?sygv is used
+        LAPACKE_REAL(sygv)(
+            LAPACK_COL_MAJOR,1,'N','U',ng,
+            A.data(),ng,B.data(),ng,
+            k2_all.data()
+        );
+    }
+    else {
+        vsr.resize(ng,ng);
+        schur_qz<realw,float>(
+            A,B,k2_all,vsr.data(),nullptr,
+            Qmat_,Zmat_,Smat_,Spmat_,
+            false
+        );
+    }
+    k_all = k2_all.cast<crealw>().sqrt();
 
     // filter swd 
-    Eigen::Array<crealw,-1,1> k =  (kr + crealw{0,1.} * ki).sqrt();
-    Eigen::Array<realw,-1,1> c_all = (om / k).real();
+    Eigen::ArrayX<realw> c_all = (om / k_all).real();
     auto mask = ((c_all.real() >= mesh.PHASE_VELOC_MIN)&& 
                 (c_all.real() <= mesh.PHASE_VELOC_MAX) && 
-                k.real().abs() >= 10 *k.imag().abs());
+                k_all.real().abs() >= 10 *k_all.imag().abs());
     std::vector<int> idx0; idx0.reserve(mask.cast<int>().sum());
     for(int i = 0; i < c_all.size(); i ++) {
         if(mask[i]) {
@@ -65,27 +81,22 @@ compute_egn(const Mesh &mesh,
     std::sort(idx.begin(), idx.end(),
         [&c_all,&idx0](size_t i1, size_t i2) {return c_all[idx0[i1]] < c_all[idx0[i2]];}); 
 
-    // copy to c/displ
-    int size = displ_all.rows();
-    c.resize(nc); egn.resize(nc * size);
+    // copy to c
+    c.resize(nc);
     for(int ic = 0; ic < nc; ic ++) {
         int id = idx0[idx[ic]];
         c[ic] = c_all[id];
-
-        // scale
-        float scale = displ_all(all,id).norm();
-        for(int i = 0; i < size; i ++) {
-            egn[ic * size + i] = displ_all(i,id) / scale;
-        }
     } 
 
-    // compute QZ if required
-    if(use_qz) {
-        // get hessenburg form by Schur decomposition
-        A = -E.cast<realw>() + rmat2(M.cast<realw>().asDiagonal()* omega2);
-        rmat2 B = rmat2(K.cast<realw>().asDiagonal());
-
-        schur_qz(ng,A,B,Qmat_,Zmat_,Smat_,Spmat_);
+    // copy eigenvectors
+    if (use_qz) {
+        egn.resize(nc*ng);
+        for(int ic = 0; ic < nc; ic ++) {
+            int id = idx0[idx[ic]];
+            for(int i = 0; i < ng; i ++) {
+                egn[ic * ng + i] = vsr(i,id);
+            }
+        }
     }
 }
 
@@ -93,13 +104,13 @@ compute_egn(const Mesh &mesh,
  * @brief compute rayleigh wave dispersion and eigenfunctions, visco-elastic case
  * @param mesh Mesh class
  * @param c dispersion, shape(nc) c = c0(1 + iQL^{-1})
- * @param displ eigen functions(displ at y direction), shape(nc,nglob_el)
+ * @param egn eigenfunctions (displ at y direction), shape(nc,nglob_el)
  * @param use_qz if true, save QZ matrix
  */
 void SolverLove::
 compute_egn_att(const Mesh &mesh,
                 std::vector<scmplx> &c,
-                std::vector<scmplx> &displ,
+                std::vector<scmplx> &egn,
                 bool use_qz)
 {
     typedef Eigen::MatrixX<crealw> crmat2;
@@ -114,19 +125,30 @@ compute_egn_att(const Mesh &mesh,
     float freq = mesh.freq;
     float om = 2. * M_PI * freq; 
     realw omega2 = std::pow(om,2);
-    crmat2 A = (1. / K.array()).cast<crealw>().matrix().asDiagonal() * 
-                (-E + M.asDiagonal().toDenseMatrix() * omega2).cast<crealw>();
-    // crmat2 A = (crmat2((1. / K.array()).cast<crealw>().matrix().asDiagonal()) * 
-    //             (-E.cast<crealw>() + crmat2(M.cast<crealw>().asDiagonal()) * omega2));
+    crmat2 A = -E.cast<crealw>() + crmat2(M.cast<crealw>().asDiagonal()* omega2);
     
-    // solve it 
-    crmat2 displ_all = A;
+    // eigenvectors/values
     Eigen::ArrayX<crealw> k(ng);
-    LAPACKE_CMPLX(geev)(
-        LAPACK_COL_MAJOR,'N','V',ng,
-        (LCREALW *)A.data(),ng,(LCREALW*)k.data(),
-        nullptr,ng,(LCREALW *)displ_all.data(),ng
-    );
+    crmat2 vsr;
+
+    // compute eigenvalues/vectors
+    if(!use_qz) { // only compute phase velocities
+        A = (1.0f / K.array()).cast<crealw>().matrix().asDiagonal() * A;
+        LAPACKE_CMPLX(geev)(
+            LAPACK_COL_MAJOR,'N','N',ng,
+            (LCREALW *)A.data(),ng,(LCREALW*)k.data(),
+            nullptr,ng,nullptr,ng
+        );
+    }
+    else {
+        crmat2 B = crmat2(K.cast<crealw>().asDiagonal());
+        vsr.resize(ng,ng);
+        schur_qz<crealw,scmplx> (
+            A,B,k,vsr.data(),nullptr,
+            cQmat_,cZmat_,cSmat_,cSpmat_,
+            false
+        );
+    }
     k = k.sqrt();
 
     // filter SWD 
@@ -151,28 +173,23 @@ compute_egn_att(const Mesh &mesh,
     std::sort(idx.begin(), idx.end(),
         [&c_all,&idx0](size_t i1, size_t i2) {return c_all[idx0[i1]].real() < c_all[idx0[i2]].real();}); 
 
-    // copy to c/displ
-    c.resize(nc); displ.resize(nc * ng);
+    // copy to c
+    c.resize(nc);
     for(int ic = 0; ic < nc; ic ++) {
         int id = idx0[idx[ic]];
         c[ic] = c_all[id];
+    }
 
-        // scale factor
-        crealw scale = displ_all(all,id).norm();
-        for(int i = 0; i < ng; i ++) {
-            displ[ic * ng + i] = displ_all(i,id) / scale;
+    // save eigenvectors if required
+    if (use_qz) {
+        egn.resize(nc*ng);
+        for(int ic = 0; ic < nc; ic ++) {
+            int id = idx0[idx[ic]];
+            for(int i = 0; i < ng; i ++) {
+                egn[ic * ng + i] = vsr(i,id);
+            }
         }
-    } 
-
-    // save QZ matrix
-    if(use_qz) {
-        // get hessenburg form by Schur decomposition
-        //typedef lapack_complex_double ldcmplx;
-        A = -E.cast<crealw>() + crmat2(M.cast<crealw>().asDiagonal()) * omega2;
-        crmat2 B = K.cast<crealw>().asDiagonal();
-        
-        schur_qz(ng,A,B,cQmat_,cZmat_,cSmat_,cSpmat_);
-    } 
+    }
 }
 
 /**
@@ -205,26 +222,39 @@ compute_egn(const Mesh &mesh,
     // solve this system
     rmat2 A = omega2 * rmat2(M.cast<realw>().asDiagonal()) - E.cast<realw>();
     rmat2 B = K.cast<realw>();
-    Eigen::ArrayX<realw> alphar(ng),alphai(ng),beta(ng);
-    rmat2 vsl(ng,ng),vsr(ng,ng);
-    
-    // generalized eigenvalue problem
-    // A x = k B x
-    LAPACKE_REAL(ggev)(
-        LAPACK_COL_MAJOR,'V','V',ng,A.data(),ng,B.data(),ng,
-        alphar.data(),alphai.data(),beta.data(),vsl.data(),ng,
-        vsr.data(),ng);
+    Eigen::ArrayX<realw> k2_all(ng);
+    Eigen::ArrayX<crealw> k_all(ng);
+    rmat2 vsl,vsr;
+
+    // compute eigenvalues/vectors
+    if(!use_qz) { // only compute phase velocities
+        Eigen::ArrayX<realw> ki(ng),beta(ng);
+        LAPACKE_REAL(ggev)(
+            LAPACK_COL_MAJOR,'N','N',ng,A.data(),ng,B.data(),ng,
+            k2_all.data(),ki.data(),beta.data(),nullptr,ng,
+            nullptr,ng);
+        
+        k2_all = k2_all / beta;
+    }
+    else {
+        vsr.resize(ng,ng);
+        vsl.resize(ng,ng);
+        schur_qz<realw,float> (
+            A,B,k2_all,vsr.data(),vsl.data(),
+            Qmat_,Zmat_,Smat_,Spmat_,
+            true
+        );
+    }
 
     //eigenvalue
-    const crealw imag_i = {0,1.};
-    Eigen::ArrayX<crealw> k = ((alphar + imag_i * alphai) / beta).sqrt();
+    k_all = k2_all.cast<crealw>().sqrt();
 
     // filter SWD 
     using Eigen::indexing::all;
-    Eigen::ArrayX<realw> c_all = (om / k).real();
+    Eigen::ArrayX<realw> c_all = (om / k_all).real();
     auto mask = ((c_all >= mesh.PHASE_VELOC_MIN)&& 
                 (c_all <= mesh.PHASE_VELOC_MAX) && 
-                k.real().abs() >= 10 *k.imag().abs());
+                k_all.real().abs() >= 10 *k_all.imag().abs());
     std::vector<int> idx0; idx0.reserve(mask.cast<int>().sum());
     int nc_all = c_all.size();
     for(int i = 0; i < nc_all; i ++) {
@@ -241,26 +271,23 @@ compute_egn(const Mesh &mesh,
     std::sort(idx.begin(), idx.end(),
         [&c_all,&idx0](size_t i1, size_t i2) {return c_all[idx0[i1]] < c_all[idx0[i2]];}); 
 
-    // copy to c/displ
-    c.resize(nc); ur.resize(nc * ng); ul.resize(nc*ng);
+    // copy to c
+    c.resize(nc);
     for(int ic = 0; ic < nc; ic ++) {
         int id = idx0[idx[ic]];
         c[ic] = c_all[id];
+    }
 
-        // normalize factor
-        float sr = vsr(all,id).norm();
-        float sl = vsl(all,id).norm();
-
-        // copy to ur/ul
-        for(int i = 0; i < ng; i ++) {
-            ur[ic*ng+i] = vsr(i,id) / sr;
-            ul[ic*ng+i] = vsl(i,id) / sl;
-        }
-    } 
-
-    // save qz matrix
+    // save eigenvectors if required
     if(use_qz) {
-        schur_qz(ng,A,B,Qmat_,Zmat_,Smat_,Spmat_);
+        ur.resize(nc * ng); ul.resize(nc*ng);
+        for(int ic = 0; ic < nc; ic ++) {
+            int id = idx0[idx[ic]];
+            for(int i = 0; i < ng; i ++) {
+                ur[ic*ng+i] = vsr(i,id);
+                ul[ic*ng+i] = vsl(i,id);
+            }
+        }
     }
 }
 
@@ -292,29 +319,40 @@ compute_egn_att(const Mesh &mesh,
     realw om = 2. * M_PI * freq;
     realw omega2 = om * om;
 
-    // solve this system
+    // matrices
     crmat2 A = crmat2(M.cast<crealw>().asDiagonal()) * omega2 - E.cast<crealw>();
     crmat2 B = K.cast<crealw>();
-    Eigen::ArrayX<crealw> alpha(ng),beta(ng);
-    crmat2 vsl(ng,ng),vsr(ng,ng);
+    Eigen::ArrayX<crealw> k_all(ng);
+    crmat2 vsl,vsr;
 
-    // generalized eigenvalue problem
-    // A x = k B x
-    // eigenvalues
-    LAPACKE_CMPLX(ggev)(
-        LAPACK_COL_MAJOR,'V','V',ng,(LCREALW*)A.data(),ng,(LCREALW*)B.data(),ng,
-        (LCREALW*)alpha.data(),(LCREALW*)beta.data(),(LCREALW*)vsl.data(),ng,
-        (LCREALW*)vsr.data(),ng
-    );
+    // compute eigenvalues/vectors
+    if(!use_qz) { // only compute phase velocities
+        Eigen::ArrayX<crealw> beta(ng);
+        LAPACKE_CMPLX(ggev)(
+            LAPACK_COL_MAJOR,'N','N',ng,(LCREALW*)A.data(),
+            ng,(LCREALW*)B.data(),ng,
+            (LCREALW*)k_all.data(),(LCREALW*)beta.data(),
+            nullptr,ng,nullptr,ng
+        );
+        k_all = k_all / beta;
+    }
+    else {
+        vsr.resize(ng,ng);
+        vsl.resize(ng,ng);
+        schur_qz<crealw,scmplx> (
+            A,B,k_all,vsr.data(),vsl.data(),
+            cQmat_,cZmat_,cSmat_,cSpmat_,
+            true
+        );
+    }
+    k_all = k_all.sqrt();
 
-    Eigen::ArrayX<crealw> k = (alpha / beta).sqrt();
-    
     // filter SWD 
     using Eigen::indexing::all;
-    Eigen::ArrayX<crealw> c_all = om / k;
+    Eigen::ArrayX<crealw> c_all = om / k_all;
     auto mask = ((c_all.real() >= mesh.PHASE_VELOC_MIN)&& 
                 (c_all.real() <= mesh.PHASE_VELOC_MAX) && 
-                k.real().abs() >= k.imag().abs());
+                k_all.real().abs() >= k_all.imag().abs());
     std::vector<int> idx0; idx0.reserve(mask.cast<int>().sum());
     int nc_all = c_all.size();
     for(int i = 0; i < nc_all; i ++) {
@@ -332,25 +370,22 @@ compute_egn_att(const Mesh &mesh,
         [&c_all,&idx0](size_t i1, size_t i2) {return c_all[idx0[i1]].real() < c_all[idx0[i2]].real();}); 
 
     // copy to c/displ
-    c.resize(nc); ur.resize(nc * ng); ul.resize(nc*ng);
+    c.resize(nc);
     for(int ic = 0; ic < nc; ic ++) {
         int id = idx0[idx[ic]];
         c[ic] = c_all[id];
-    
-        // normalize factor
-        realw sr = vsr(all,id).norm();
-        realw sl = vsl(all,id).norm();
-
-        for(int i = 0; i < ng; i ++) {
-            ul[ic * ng + i] = vsl(i,id) / sl;
-            ur[ic * ng + i] = vsr(i,id) / sr;
-        }
     }
 
-   // save qz matrix
     if(use_qz) {
-        schur_qz(ng,A,B,cQmat_,cZmat_,cSmat_,cSpmat_);
+        ur.resize(nc * ng); ul.resize(nc * ng);
+        for(int ic = 0; ic < nc; ic ++) {
+            int id = idx0[idx[ic]];
+            for(int i = 0; i < ng; i ++) {
+                ul[ic * ng + i] = vsl(i,id);
+                ur[ic * ng + i] = vsr(i,id);
+            }
+        }
     }
 }
 
-} // end namespace specswd
+} // namespace specswd

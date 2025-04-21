@@ -16,9 +16,17 @@ def _model_sanity_check(wavetype:str,vph=None,vpv=None,vsh=None,vsv=None,
 
 class SpecWorkSpace:
 
-    def __init__(self,wavetype:str,z:np.ndarray,rho:np.ndarray,
+    def __init__(self):
+        self._max_mode = 0
+        self._has_att = None 
+        self._use_qz = None 
+        self._wavetype = None  
+
+        pass
+
+    def initialize(self,wavetype:str,z:np.ndarray,rho:np.ndarray,
                 vph=None,vpv=None,vsh=None,vsv=None,
-                Qa=None,Qc=None,Qn=None,Ql=None,
+                eta=None,Qa=None,Qc=None,Qn=None,Ql=None,
                 c21=None,nQani=None,Qani=None,
                 disp=False):
         """
@@ -55,9 +63,10 @@ class SpecWorkSpace:
 
         self._wavetype = wavetype.lower()
         self._use_qz = False
+        self._nz = len(z)
         assert(self._wavetype in ['love','rayl','aniso'])
 
-        _model_sanity_check(wavetype,vpv,vph,vsv,vsh,Qa,
+        _model_sanity_check(wavetype,vph,vpv,vsh,vsv,Qa,
                             Qc,Qn,Ql,c21,nQani,Qani)
         
         # init work space by calling libswd
@@ -67,8 +76,14 @@ class SpecWorkSpace:
                 self._has_att = True
             libswd.init_love(z,rho,vsh,vsv,Qn,Ql,self._has_att,disp)
 
+        elif self._wavetype == 'rayl':
+            if (Qn is not None) and (Qa is not None) and (Qc is not None):
+                self._has_att = True
+            libswd.init_rayl(z,rho,vph,vpv,vsv,eta,Qa,Qc,Ql,
+                            self._has_att,disp)
         else:
             print("not implemented!")
+            assert(0 == 1)
 
     def compute_egn(self,freq:float,max_order:int = -1,use_qz=True) -> np.ndarray:
         """
@@ -98,6 +113,9 @@ class SpecWorkSpace:
         else:
             c = libswd.compute_egn(freq,max_order,use_qz)
 
+        # save current mode number
+        self._max_mode = len(c)
+
         return c
 
     def group_velocity(self,max_order:int = -1) -> np.ndarray:
@@ -126,10 +144,55 @@ class SpecWorkSpace:
             u = libswd.group_vel_att(max_order)
 
         return u
-    
-    def print_info(self):
-        """
-        print required information
-        """
-        return "hello"
         
+    def get_phase_kl(self,imode:int):
+        """
+        compute phase velocity sensitivity kernels for mode {imode}
+
+        Parameters
+        -------------
+        imode : int 
+            compute kernels at imode, imode \belong [0,max_mode)
+
+        Returns
+        -----------
+        frekl_c: np.ndarray
+            phase velocity kernels, shape(nkers,self._nz)
+        frekl_q: np.ndarray
+            phase velocity Q kernels,shape(nkers,self._nz), only returns when
+            self._has_att = True
+        """
+        if(imode >= self._max_mode): 
+            print(f"imode should inside [0,{self._max_mode})")
+        frekl_c,frekl_q = libswd.phase_kl(imode,self._has_att)
+
+        if self._has_att:
+            return frekl_c,frekl_q
+        else:
+            return frekl_c
+        
+    def get_group_kl(self,imode:int):
+        """
+        compute group velocity sensitivity kernels for mode {imode}
+
+        Parameters
+        -------------
+        imode : int 
+            compute kernels at imode, imode \belong [0,max_mode)
+
+        Returns
+        -----------
+        frekl_c: np.ndarray
+            group velocity kernels, shape(nkers,self._nz)
+        frekl_q: np.ndarray
+            group velocity Q kernels,shape(nkers,self._nz), only returns when
+            self._has_att = True
+        """
+        if(imode >= self._max_mode): 
+            print(f"imode should inside [0,{self._max_mode})")
+        frekl_c,frekl_q = libswd.group_kl(imode,self._has_att)
+
+        if self._has_att:
+            return frekl_c,frekl_q
+        else:
+            return frekl_c
