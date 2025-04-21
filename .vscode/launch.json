@@ -7,9 +7,10 @@
             "request": "launch",
             "program": "${workspaceFolder}/bin/surfrayl",
             "args": ["model.txt","0.01","1","1"],
-            //"args": ["model.txt.love"],
-            "stopAtEntry": false,
             "cwd": "${workspaceFolder}/example/rayleigh",
+            "stopAtEntry": false,
+            // "program": "${workspaceFolder}/a.out",
+            // "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "lldb"

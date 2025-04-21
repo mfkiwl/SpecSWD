@@ -9,9 +9,24 @@ namespace specswd
 
 // only valid for frequency range [0.01,100]
 const int NSLS = 5;
-const std::array<double,NSLS> y_sls_ref = {1.93044501, 1.64217132, 1.73606189, 1.42826439, 1.66934129};
-const std::array<double,NSLS> w_sls_ref = {4.71238898e-02, 6.63370885e-01, 9.42477796e+00, 1.14672436e+02,1.05597079e+03};
+std::array<double,NSLS> y_sls_ref = {1.93044501, 1.64217132, 1.73606189, 1.42826439, 1.66934129};
+std::array<double,NSLS> w_sls_ref = {4.71238898e-02, 6.63370885e-01, 9.42477796e+00, 1.14672436e+02,1.05597079e+03};
 
+
+/**
+ * @brief reset reference SLS model
+ * 
+ * @param w_sls new refernce w_sls, shape(NSLS)
+ * @param y_sls new refernce y_sls, shape(NSLS)
+ */
+void 
+reset_ref_Q_model(const double *w_sls, const double *y_sls)
+{
+    for(int i = 0; i < NSLS; i ++) {
+        w_sls_ref[i] = w_sls[i];
+        y_sls_ref[i] = y_sls[i];
+    }
+}
 
 /**
  * @brief correct y from reference model to target model

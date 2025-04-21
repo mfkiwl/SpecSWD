@@ -18,6 +18,8 @@ void get_C21_att(float freq,const float *Qm,int nQmodel,
                        std::complex<float> * c21,
                        int funcid=1);
 
+void 
+reset_ref_Q_model(const double *w_sls, const double *y_sls);
 
 }
 
