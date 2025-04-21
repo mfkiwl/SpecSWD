@@ -72,8 +72,9 @@ struct Mesh {
 
     float PHASE_VELOC_MIN,PHASE_VELOC_MAX;
 
-    // current frequency
-    float freq;
+    // constants
+    float freq;  // current frequency
+    float phi;   // current angle, in rad
 
     // public functions
     void read_model(const char *filename);

@@ -59,11 +59,15 @@ compute_minmax_veloc_(float phi,std::vector<float> &vmin,std::vector<float> &vma
  * @brief Create SEM database by using input model info
  * 
  * @param freq0 current frequency, in Hz
- * @param phi directional angle
+ * @param phi0 directional angle,in deg
  */
 void Mesh::
-create_database(float freq0,float phi)
+create_database(float freq0,float phi0)
 {
+    // copy constants
+    this -> freq = freq0;
+    this -> phi = phi0 * M_PI / 180.;
+
     using namespace GQTable;
 
     std::vector<float> vmin,vmax;
@@ -79,7 +83,6 @@ create_database(float freq0,float phi)
     PHASE_VELOC_MIN *= 0.85;
     
     // loop every region to find best element size
-    this -> freq = freq0;
     nspec = 0;
     std::vector<int> nel(nregions - 1);
     for(int ig = 0; ig < nregions - 1; ig ++) {
