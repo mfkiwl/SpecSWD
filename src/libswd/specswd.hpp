@@ -8,6 +8,10 @@ extern "C" {
 void 
 specswd_init_GQTable();
 
+void specswd_reset_Qmodel(const double *w,const double *y);
+
+void specswd_kernel_size(int *nkers,int *nz);
+
 void
 specswd_init_mesh_love(
     int nz, const float *z,const float *rho,const float *vsh,
@@ -19,8 +23,8 @@ void
 specswd_init_mesh_rayl(
     int nz, const float *z,const float *rho,
     const float *vph,const float* vpv,const float *vsv,
-    const float *QA, const float *QC,const float *QL,
-    bool HAS_ATT,bool print_tomo_info
+    const float *eta,const float *QA, const float *QC,
+    const float *QL, bool HAS_ATT,bool print_tomo_info = false
 );
 
 void 
@@ -34,6 +38,10 @@ specswd_group_love();
 
 void 
 specswd_group_rayl();
+
+void specswd_phase_kl(int imode,float *frekl_c,float *frekl_q);
+void specswd_group_kl(int imode,float *frekl_c,float *frekl_q);
+
 
 
 #ifdef __cplusplus

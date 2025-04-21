@@ -41,9 +41,10 @@ void init_love(const vec &z,const vec &rho,
 
 void init_rayl(const vec &z,const vec &rho,
              const vec &vph, const vec &vpv,
-             const vec &vsv, const vec &QA,
-             const vec &QC, const vec &QL,
-             bool HAS_ATT,bool print_info)
+             const vec &vsv,const vec &eta,
+             const vec &QA,const vec &QC, 
+             const vec &QL,bool HAS_ATT,
+             bool print_info)
 {
     // init GQtable
     specswd_init_GQTable();
@@ -61,7 +62,7 @@ void init_rayl(const vec &z,const vec &rho,
     int nz = z.size();
     specswd_init_mesh_rayl(
         nz,z.data(),rho.data(),vph.data(),vpv.data(),
-        vsv.data(),qa,qc,ql,HAS_ATT,print_info
+        vsv.data(),eta.data(),qa,qc,ql,HAS_ATT,print_info
     );
 }
 
@@ -98,7 +99,7 @@ compute_swd(float freq,int max_order,bool use_qz)
     if (max_order < 0 || max_order > nc ) {
         max_order = nc;
     }
-    c_out.resize({nc});
+    c_out.resize({max_order});
 
     // copy phase velocity to c_out
     auto c = c_out.template mutable_unchecked<1>();
@@ -142,7 +143,7 @@ compute_group_vel(int max_order)
     if (max_order < 0 || max_order > nc ) {
         max_order = nc;
     }
-    u_out.resize({nc});
+    u_out.resize({max_order});
 
     // copy phase velocity to c_out
     auto u = u_out.template mutable_unchecked<1>();
@@ -153,22 +154,73 @@ compute_group_vel(int max_order)
     return u_out;
 }
 
+std::tuple<vec,vec>
+compute_phase_kl(int imode,bool HAS_ATT) 
+{
+    int nkers,nz;
+    specswd_kernel_size(&nkers,&nz);
+    vec frekl_c({nkers,nz}),frekl_q;
+    if(HAS_ATT) {
+        frekl_q.reshape({nkers,nz});
+    }
+    else {
+        frekl_q.resize({0,0});
+    }
+
+    // compute kernels
+    specswd_phase_kl(
+        imode,
+        frekl_c.mutable_data(),
+        frekl_q.mutable_data()
+    );
+
+    return std::make_tuple(frekl_c,frekl_q);
+}
+
+std::tuple<vec,vec>
+compute_group_kl(int imode,bool HAS_ATT) 
+{
+    int nkers,nz;
+    specswd_kernel_size(&nkers,&nz);
+    vec frekl_c({nkers,nz}),frekl_q;
+    if(HAS_ATT) {
+        frekl_q.reshape({nkers,nz});
+    }
+    else {
+        frekl_q.resize({0,0});
+    }
+
+    // compute kernels
+    specswd_group_kl(
+        imode,
+        frekl_c.mutable_data(),
+        frekl_q.mutable_data()
+    );
+
+    return std::make_tuple(frekl_c,frekl_q);
+}
+
 PYBIND11_MODULE(libswd,m){
     m.doc() = "Surface wave dispersion and sensivity kernel\n";
-    m.def("init_love",&init_love,arg("z"),arg("rho"),arg("vsh"),
-          arg("vsv"),arg("QN"),arg("QL"),
-          arg("HAS_ATT") = false,
-          arg("print_info") = false,
-          "initialize global vars for love wave");
+    m.def(
+        "init_love",&init_love,arg("z"),arg("rho"),
+        arg("vsh"),arg("vsv"),arg("QN"),arg("QL"),
+        arg("HAS_ATT") = false,
+        arg("print_info") = false,
+        "initialize global vars for love wave"
+    );
         
-    m.def("init_rayl",&init_rayl,arg("z"),arg("rho"),arg("vph"),
-          arg("vpv"),arg("vsv"),arg("QA"),arg("QC"),
+    m.def("init_rayl",&init_rayl,arg("z"),
+          arg("rho"),arg("vph"),
+          arg("vpv"),arg("vsv"), arg("eta"),
+          arg("QA"),arg("QC"),
           arg("QL"),arg("HAS_ATT") = false,
           arg("print_info") = false,
           "initialize global vars for rayleigh wave");
     
     m.def("compute_egn",&compute_swd<float>,
-          arg("freq"),arg("max_order"),arg("use_qz")=true,
+          arg("freq"),arg("max_order"),
+          arg("use_qz")=true,
           "compute dispersions for elastic wave");
 
     m.def("compute_egn_att",&compute_swd<std::complex<float>>,
@@ -182,4 +234,15 @@ PYBIND11_MODULE(libswd,m){
     m.def("group_vel_att",&compute_group_vel<std::complex<float>>,
             arg("max_order"),
          "compute group velocity for visco-elastic wave");
+    m.def(
+        "phase_kl",&compute_phase_kl,
+        arg("imode"),arg("HAS_ATT"),
+        "compute phase velocity sensitivity kernels"
+    );
+
+    m.def(
+        "group_kl",&compute_group_kl,
+        arg("imode"),arg("HAS_ATT"),
+        "compute groupvelocity sensitivity kernels"
+    );
 }
