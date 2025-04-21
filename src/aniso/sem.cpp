@@ -7,8 +7,36 @@ namespace specswd
 
 using std::vector;
 
+/**
+ * @brief preparing anisotropic matrix M/H/K/E, note we don't multiply I to H
+ * 
+ * @tparam T data type, default float
+ * @param freq input data type, float or complex<float>
+ * @param nspec_el no. of elastic GLL elements
+ * @param nspec_ac no. of acoustic GLL elements
+ * @param nspec_el_grl  no. of elastic GRL elements
+ * @param nspec_ac_grl no. of acoustic GRL elements
+ * @param nglob_el unique points in elastic domain
+ * @param nglob_ac unique points in acoustic domain
+ * @param el_elmnts mapping from el elements to global index
+ * @param ac_elmnts mapping from ac elements to global index
+ * @param xrho_el density in elastic domain
+ * @param xrho_ac density in acoustic domain
+ * @param ibool_el  connectivity matrix,in el shape(nspec_?*NGLL+nspec_?_grl*NGRL)
+ * @param ibool_ac connectivity matrix,in ac shape(nspec_?*NGLL+nspec_?_grl*NGRL)
+ * @param jaco jacobians, shape(nspec_ac+nspec_el+1)
+ * @param xc21 21 elastic tensor, shape(21,size_el)
+ * @param nQmodel no. of quality factors used
+ * @param xQani Quality factors in el domain, shape(nQmodel, size_el)
+ * @param xkappa_ac kappa in ac domain
+ * @param xQk_ac Qkappa, in ac domain
+ * @param nfaces_bdry no. of el-ac interfaces
+ * @param ispec_bdry element index on each side, (ispec_ac,ispec_el) = ispec_bdry[i,:], shape(nfaces_bdry,2)
+ * @param bdry_norm_direc if the ac-> el normal vector is downward
+ * @param Mmat,Kmat,Hmat,Emat M/K/H/E matrices 
+ */
 template<typename T = float >
-static void 
+void 
 prepare_aniso_(float freq,int nspec_el,int nspec_ac,int nspec_el_grl,
                 int nspec_ac_grl,int nglob_el,int nglob_ac,int nQmodel,
                 const int *el_elmnts,const int *ac_elmnts,
@@ -60,7 +88,7 @@ prepare_aniso_(float freq,int nspec_el,int nspec_ac,int nspec_el_grl,
             }
 
             // apply Q model to C21 if required
-            if constexpr (std::is_same_v<T,dcmplx>) {
+            if constexpr (std::is_same_v<T,scmplx>) {
                 std::array<float,21> Qm;
                 for(int q = 0; q < nQmodel; q ++) {
                     Qm[q] = xQani[q*size_el+i];
@@ -115,9 +143,9 @@ prepare_aniso_(float freq,int nspec_el,int nspec_ac,int nspec_el_grl,
                 Mmat[iglob + nglob_el * i] += M0;
                 for(int p = 0; p < 3; p ++) {
                     T temp = C21(i,0,p,0,a) * k[0] * k[0] + 
-                                C21(i,0,p,1,a) * k[0] * k[1] + 
-                                C21(i,1,p,0,a) * k[0] * k[1] +
-                                C21(i,1,p,1,a) * k[1] * k[1];
+                             C21(i,0,p,1,a) * k[0] * k[1] + 
+                             C21(i,1,p,0,a) * k[0] * k[1] +
+                             C21(i,1,p,1,a) * k[1] * k[1];
                     int idx = (i*nglob_el+iglob) * ng + (p*nglob_el+iglob);
                     Kmat[idx] += temp;
                 }
@@ -204,28 +232,28 @@ prepare_aniso_(float freq,int nspec_el,int nspec_ac,int nspec_el_grl,
 }
 
 void SolverAni::
-prepare_matrices(float freq,float phi,const Mesh &M)
+prepare_matrices(const Mesh &M)
 {
     if(!M.HAS_ATT) {
         prepare_aniso_(
-            freq,M.nspec_el,M.nspec_ac,M.nspec_el_grl,M.nspec_ac_grl,
+            M.freq,M.nspec_el,M.nspec_ac,M.nspec_el_grl,M.nspec_ac_grl,
             M.nglob_el,M.nglob_ac,M.nQmodel_ani,M.el_elmnts.data(),
             M.ac_elmnts.data(),M.xrho_el.data(),M.xrho_ac.data(),
             M.ibool_el.data(),M.ibool_ac.data(),M.jaco.data(),
             M.xC21.data(),M.xQani.data(),M.xkappa_ac.data(),
             M.xQk_ac.data(),M.nfaces_bdry,M.ispec_bdry.data(),
-            M.bdry_norm_direc.data(),phi,Mmat,Kmat,Hmat,Emat
+            M.bdry_norm_direc.data(),M.phi,Mmat,Kmat,Hmat,Emat
         );
     }
     else {
         prepare_aniso_(
-            freq,M.nspec_el,M.nspec_ac,M.nspec_el_grl,M.nspec_ac_grl,
+            M.freq,M.nspec_el,M.nspec_ac,M.nspec_el_grl,M.nspec_ac_grl,
             M.nglob_el,M.nglob_ac,M.nQmodel_ani,M.el_elmnts.data(),
             M.ac_elmnts.data(),M.xrho_el.data(),M.xrho_ac.data(),
             M.ibool_el.data(),M.ibool_ac.data(),M.jaco.data(),
             M.xC21.data(),M.xQani.data(),M.xkappa_ac.data(),
             M.xQk_ac.data(),M.nfaces_bdry,M.ispec_bdry.data(),
-            M.bdry_norm_direc.data(),phi,CMmat,CKmat,CHmat,CEmat
+            M.bdry_norm_direc.data(),M.phi,CMmat,CKmat,CHmat,CEmat
         );
     }
 }
