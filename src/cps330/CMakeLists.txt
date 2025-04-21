@@ -8,4 +8,9 @@ install(TARGETS cps330
   COMPONENT python
   LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/lib
 )
+
+install(TARGETS cps330
+  COMPONENT python
+  LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/specd/lib
+)
 # add_library(libcps330 ${SOURCE})

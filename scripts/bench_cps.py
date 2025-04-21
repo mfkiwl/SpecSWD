@@ -14,12 +14,14 @@ def get_disp(thk,vp,vs,rho,T,mode,wavetype,sphere=False):
 
 
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: python bench_cps.py wavetype")
+    if len(sys.argv) != 3:
+        print("Usage: python bench_cps.py modfile wavetype")
         exit(1)
-    wavetype = int(sys.argv[1])
+    
+    modfile = sys.argv[1]
+    wavetype = int(sys.argv[2])
 
-    data = np.loadtxt("model.txt",skiprows=1,dtype=np.float32)
+    data = np.loadtxt(modfile,dtype=np.float32)
     thk = data[:,0]
     rho = data[:,1]
     vs = data[:,4]
@@ -38,7 +40,7 @@ def main():
         wtp = 'R'
     else:
         wtp = 'L'
-    for i in range(0,6):
+    for i in range(20):
         c = np.zeros(len(T))
         u = np.zeros(len(T))
         for it in range(len(T)):

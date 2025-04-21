@@ -1,6 +1,6 @@
 #  CMakeLists.txt
 
-cmake_minimum_required(VERSION 3.13.0)
+cmake_minimum_required(VERSION 3.25.0)
 
 ################## compiler options ##################
 # compiler
@@ -13,8 +13,8 @@ set(CMAKE_CXX_FLAGS             ${CXXFLAGS})
 ################## dependencies ##################
 # preferred installation prefix of dependencies
 set(EIGEN_INC                 ${EIGEN_INC})
-set(USE_LAPACK             ${USE_LAPACK}) 
-set(BUILD_PYLIB             ${BUILD_PYLIB})
+
+option(BUILD_LIBS "BUILD_LIBS" OFF)
 
 
 # set default values
@@ -24,59 +24,61 @@ set(${var} ${val})
 endif()
 endmacro()
 setDefault(EIGEN_INC   "~/software/eigen-3.4.0")
-setDefault(USE_LAPACK FALSE)
-setDefault(BUILD_PYLIB FALSE)
 
 # project
 project(SWDTTI LANGUAGES CXX Fortran)
 
 # build type 
 set(CMAKE_BUILD_TYPE RELEASE)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_SOURCE_DIR}/build/obj)
 
 ################# cmake setup #################
-set(CMAKE_CXX_FLAGS  "-g")
+set(CMAKE_CXX_FLAGS  "-g -Wall")
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU") 
-  set(CMAKE_CXX_FLAGS_RELEASE  "${CMAKE_CXX_FLAGS_RELEASE} -march=native -ffast-math")
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU") 
+  set(CMAKE_CXX_FLAGS_RELEASE  "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
   set(CMAKE_Fortran_FLAGS  "${CMAKE_Fortran_FLAGS} -march=native -ffixed-line-length-none")
-  set(CMAKE_CXX_FLAGS_RELEASE  "-O2")
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+  #set(CMAKE_CXX_FLAGS_RELEASE  "-O0 -D_GLIBCXX_DEBUG")
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
   set(CMAKE_CXX_FLAGS_RELEASE  "${CMAKE_CXX_FLAGS_RELEASE} -xHost -DEIGEN_STRONG_INLINE=inline")
   set(CMAKE_Fortran_FLAGS  "${CMAKE_Fortran_FLAGS} -xHost -extend-source")
+else ()
+  set(CMAKE_Fortran_FLAGS  "${CMAKE_Fortran_FLAGS} -march=native -ffixed-line-length-none")
+  #set(CMAKE_CXX_FLAGS_RELEASE  "-O0 -D_GLIBCXX_DEBUG")
+  set(CMAKE_CXX_FLAGS_RELEASE  "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
 endif()
 
-set(CMAKE_VERBOSE_MAKEFILE off)
+set(CMAKE_VERBOSE_MAKEFILE on)
 
 ################# find packages #################
 # path of *.cmake files
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/include/cmake)
+#set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/include/cmake)
 
 # eigen
 include_directories(${EIGEN_INC})
 
 # lapack
-if(${USE_LAPACK})
-  find_package(LAPACK)
-  set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DEIGEN_USE_LAPACKE")
-endif()
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+find_package(LAPACK REQUIRED)
+find_package(LAPACKE REQUIRED)
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DEIGEN_USE_LAPACKE")
 
 ################# include paths #################
 include_directories(${PROJECT_SOURCE_DIR}/src)
-include_directories(${PROJECT_SOURCE_DIR}/include)
+#include_directories(${PROJECT_SOURCE_DIR}/include)
 
 # subs
 add_subdirectory(${PROJECT_SOURCE_DIR}/src/shared)
+add_subdirectory(${PROJECT_SOURCE_DIR}/src/mesh)
 add_subdirectory(${PROJECT_SOURCE_DIR}/src/vti)
-add_subdirectory(${PROJECT_SOURCE_DIR}/src/tti)
-add_subdirectory(${PROJECT_SOURCE_DIR}/src/multiphysics)
+# add_subdirectory(${PROJECT_SOURCE_DIR}/src/tti)
+# add_subdirectory(${PROJECT_SOURCE_DIR}/src/multiphysics)
 
-# check build pylib
-if(${BUILD_PYLIB}) 
-  #find_package(pybind11 REQUIRED)
-  find_package(Python COMPONENTS Interpreter Development)
+# check build libraries
+if(BUILD_LIBS) 
+  find_package(Python3 COMPONENTS Interpreter Development)
   find_package(pybind11 CONFIG)
   add_subdirectory(src/cps330)
   add_subdirectory(src/libswd)

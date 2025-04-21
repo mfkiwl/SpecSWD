@@ -15,15 +15,16 @@
  * @brief compute the Lagrange interpolants based upon the interpolation points   
  * 
  * @param xi current location,
- * @param nctrl no. of control points 
+ * @param NCTRL no. of control points 
  * @param xctrl control nodes, shape (nctrl) 
  * @param h polynomial value, shape (nctrl)
  * @param hprime derivative, shape (nctrl)
  */
-void lagrange_poly(double xi,int nctrl,const double *xctrl,
+void lagrange_poly(double xi,size_t NCTRL,const double *xctrl,
                 double * h,double*  hprime)
 {
     //! note: this routine is hit pretty hard by the mesher, optimizing the loops here will be beneficial
+    int nctrl = NCTRL;
     for(int dgr = 0;dgr<nctrl;dgr++){
         double prod1 = 1., prod2 = 1.;
 
@@ -124,7 +125,7 @@ static double legendre(int n,double x){
  * @param weights weights shape (length)
  * @param length length of the array or the order+1 of the polynomial
  */
-void gauss_legendre_lobatto(double* knots, double* weights, int length)
+void gauss_legendre_lobatto(double* knots, double* weights, size_t length)
 {
     // special length
     if(length == 5) {
@@ -182,7 +183,7 @@ void gauss_legendre_lobatto(double* knots, double* weights, int length)
     }
 
     // copy to knots/weights
-    for(int i = 0; i < length; i ++) {
+    for(int i = 0; i < n + 1; i ++) {
         knots[i] = (double) x[i];
         weights[i] = (double) w[i];
     }

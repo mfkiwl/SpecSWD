@@ -6,10 +6,12 @@
 namespace py = pybind11;
 using py::arg;
 
-typedef py::array_t<float> ftensor;
-typedef py::array_t<double> dtensor;
-typedef std::tuple<dtensor,dtensor,dtensor,dtensor,dtensor,bool> tupledt6;
-typedef std::tuple<dtensor,bool> tuple2;
+namespace py = pybind11;
+
+const auto FCST = (py::array::c_style | py::array::forcecast) ;
+typedef py::array_t<float,FCST> fvec;
+typedef py::array_t<double,FCST> dvec;
+typedef std::tuple<dvec,bool> tuple2;
 
 /**
  * calculates the dispersion values for any layered model, any frequency, and any mode.
@@ -59,8 +61,8 @@ int _surfdisp(float *thk,float *vp,float *vs,float *rho,
     return ierr;
 }
 
-tuple2 forward(ftensor &thk,ftensor &vp,ftensor &vs,ftensor &rho,
-                dtensor &t,std::string wavetype,
+tuple2 forward(fvec &thk,fvec &vp,fvec &vs,fvec &rho,
+                dvec &t,const std::string &wavetype,
                 int mode=0,bool sphere=false)
 {
     // check input parameters
@@ -74,7 +76,7 @@ tuple2 forward(ftensor &thk,ftensor &vp,ftensor &vs,ftensor &rho,
 
     // allocate space
     int nt = t.size(), n = thk.size();
-    dtensor cg(nt);
+    dvec cg(nt);
     int ierr;
     ierr = _surfdisp(thk.mutable_data(),vp.mutable_data(),vs.mutable_data(),
                 rho.mutable_data(),n,t.mutable_data(),cg.mutable_data(),
