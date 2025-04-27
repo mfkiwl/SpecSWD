@@ -40,7 +40,7 @@ jobs:
           
       - name: Build master docs (Sphinx)
         run: |
-          pip install numpy scipy
+          pip install numpy scipy matplotlib numba h5py
            sphinx-build -b html misc/source docs
 
       - name: Deploy to GitHub Pages

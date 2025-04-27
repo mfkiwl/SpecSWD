@@ -1,20 +1,17 @@
 {
     "version": "0.2.0",
     "configurations": [
-        {
-            "name": "(lldb) Launch",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/bin/surfrayl",
-            "args": ["model.txt","0.01","1","1"],
-            "cwd": "${workspaceFolder}/example/rayleigh",
-            "stopAtEntry": false,
-            // "program": "${workspaceFolder}/a.out",
-            // "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "lldb"
-        }
+      {
+        "name": "Python + LLDB",
+        "type":"debugpy",
+        "request": "launch",
+        "program": "${workspaceFolder}/example/love1/step0_database.py",
+        "args": ["model.txt", 
+                "1", "1", "1", "0"],
 
+        "cwd": "${workspaceFolder}/example/love1",
+        "stopOnEntry": false
+      }
     ]
-}
+  }
+  

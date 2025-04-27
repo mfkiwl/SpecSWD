@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "specd"
+version = "0.1.0"
+description = "Surface wave dispersion and sensitivity analysis in anisotropic, weakly anelastic medium"
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.7"
+license = { text = "MIT" }
+
+authors = [
+  { name = "Nanqiao Du", email = "nqdu@foxmail.com" }
+]
+dependencies = [
+  "numpy>=1.20",
+  "scipy>=1.12.0",
+  "h5py>=3.11.0",
+  "matplotlib>=3.5.0"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["example*","misc*","scripts*"]
+
