@@ -1,5 +1,6 @@
 #include "shared/GQTable.hpp"
 #include "aniso/aniso.hpp"
+#include "shared/attenuation.hpp"
 
 namespace specswd
 {
@@ -93,8 +94,10 @@ prepare_aniso_(float freq,int nspec_el,int nspec_ac,int nspec_el_grl,
                 for(int q = 0; q < nQmodel; q ++) {
                     Qm[q] = xQani[q*size_el+i];
                 }
-                set_C21_att_model(freq,Qm.data(),nQmodel,
-                                &sumC21[i*NGRL]);
+                get_C21_att(
+                    freq,Qm.data(),nQmodel,
+                    &sumC21[i*NGRL]
+                );
             }
 
             

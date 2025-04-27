@@ -11,6 +11,8 @@ echo $sourcedir
 
 # run sem
 time $sourcedir/bin/surfrayl model.txt 0.01 0.5 100 0
+#$$sourcedir/bin/surfrayl model.txt 0.1 0.2 10 0
+
 
 
 # convert database to h5file 
@@ -24,7 +26,7 @@ ln -s $sourcedir/lib/cps* .
 python bench_cps.py model.txt.cps 2
 
 # plot  displ 
-python $sourcedir/scripts/plot_disp.py
+python $sourcedir/scripts/plot_disp.py 6
 
 # plot_kernel.py file period_id mode
 # python plot_kernels.py out/kernels.h5 20 0

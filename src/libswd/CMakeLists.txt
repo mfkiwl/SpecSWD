@@ -12,7 +12,7 @@ install(TARGETS libswd
   COMPONENT python
   LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/lib
 )
-
+ 
 # # .so 
 # add_library(specswd SHARED pack.cpp)
 # set_target_properties(specswd PROPERTIES PUBLIC_HEADER specswd.hpp )

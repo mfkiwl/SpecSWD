@@ -6,8 +6,6 @@
 namespace py = pybind11;
 using py::arg;
 
-namespace py = pybind11;
-
 const auto FCST = (py::array::c_style | py::array::forcecast) ;
 typedef py::array_t<float,FCST> fvec;
 typedef py::array_t<double,FCST> dvec;

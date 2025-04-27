@@ -7,16 +7,14 @@
 #include <memory>
 #include <complex>
 
-#define CNAME(a) extern "C" void a
-
 // global vars for solver/mesh
 
 namespace specswd_pylib
 {
 
-extern std::unique_ptr<specswd::Mesh> M_;
-extern std::unique_ptr<specswd::SolverLove> LoveSol_;
-extern std::unique_ptr<specswd::SolverRayl> RaylSol_;
+extern specswd::Mesh mesh;
+extern specswd::SolverLove LoveSol;
+extern specswd::SolverRayl RaylSol;
 
 // global vars for eigenvalues/eigenvectors 
 extern std::vector<float> egnr_,egnl_,c_,u_;

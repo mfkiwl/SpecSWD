@@ -26,31 +26,27 @@ allocate_1D_model(int nz0,int swd_type,int has_att)
     HAS_ATT = has_att;
 
     // allocate space
-    switch (SWD_TYPE)
-    {
-    case 0:
+    if(SWD_TYPE == 0) {
         allocate(nz_tomo,vsv_tomo,vsh_tomo,rho_tomo);
         if(HAS_ATT) {
             allocate(nz_tomo,QN_tomo,QL_tomo);
         }
-        break;
-    case 1:
+    }
+    else if(SWD_TYPE == 1) {
         allocate(nz_tomo,vpv_tomo,vph_tomo,vsv_tomo,
                 rho_tomo,eta_tomo);
         if(HAS_ATT) allocate(nz_tomo,QC_tomo,QA_tomo,QL_tomo);
-        break;
-    
-    case 2:
+    }
+    else if(SWD_TYPE == 2) {
         allocate(nz_tomo*21,c21_tomo);
         allocate(nz_tomo,rho_tomo);
         if(HAS_ATT) allocate(nz_tomo*21,Qani_tomo);
 
-        break;
-    default:
+    }
+    else {
         printf("SWD_TYPE should in [0,1,2]!\n");
         printf("current value is %d\n",SWD_TYPE);
         exit(1);
-        break;
     }
 
     // allocate depth

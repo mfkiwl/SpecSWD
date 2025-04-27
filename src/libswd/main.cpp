@@ -1,6 +1,7 @@
 
 #include "libswd/specswd.hpp"
 #include "libswd/global.hpp"
+#include "shared/GQTable.hpp"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
@@ -30,8 +31,6 @@ void init_love(const vec &z,const vec &rho,
         qn = QN.data();
         ql = QL.data();
     }
-
-    // init mesh
     int nz = z.size();
     specswd_init_mesh_love(
         nz,z.data(),rho.data(),vsh.data(),vsv.data(),
@@ -66,102 +65,75 @@ void init_rayl(const vec &z,const vec &rho,
     );
 }
 
-template <typename T> py::array_t<T,FCST> 
-compute_swd(float freq,int max_order,bool use_qz) 
+template <typename T> py::array_t<T> 
+compute_swd(float freq,float phi_in_deg,bool use_qz) 
 {
     using namespace specswd_pylib;
-    py::array_t<T,FCST> c_out;
-    const int SWD_TYPE = M_->SWD_TYPE;
-    const bool HAS_ATT = M_->HAS_ATT;
+    py::array_t<T> c_out;
 
     // get phase velocities
-    switch (SWD_TYPE)
-    {
-    case 0:
-        specswd_egn_love(freq,use_qz);
-        break;
-    case 1:
-        specswd_egn_rayl(freq,use_qz);
-        break;
-    default:
-        break;
-    }
+    specswd_execute(freq,phi_in_deg,use_qz);
 
     // allocate space
-    int nc = (HAS_ATT) ? cc_.size()  : c_.size();
+    int nc;
     const T *c_glob = nullptr;
     if constexpr (std::is_same_v<T,float>) {
         c_glob = c_.data();
+        nc = c_.size();
     }
     else {
         c_glob = cc_.data();
+        nc = cc_.size();
     }
-    if (max_order < 0 || max_order > nc ) {
-        max_order = nc;
-    }
-    c_out.resize({max_order});
+    c_out.resize({nc});
 
     // copy phase velocity to c_out
-    auto c = c_out.template mutable_unchecked<1>();
-    for(int ic = 0; ic < max_order; ic ++) {
-        c(ic) = c_glob[ic];
+    auto c0 = c_out.template mutable_unchecked<1>();
+    for(int ic = 0; ic < nc; ic ++) {
+        c0(ic) = c_glob[ic];
     }
 
     return c_out;
 }
 
-template <typename T> py::array_t<T,FCST> 
-compute_group_vel(int max_order)
+template <typename T> T
+compute_group_vel(int imode)
 {
     using namespace specswd_pylib;
-    py::array_t<T,FCST> u_out;
-    const int SWD_TYPE = M_->SWD_TYPE;
-    const bool HAS_ATT = M_->HAS_ATT;
+    const int SWD_TYPE = mesh.SWD_TYPE;
 
-    // get phase velocities
+    // get group velocities
     switch (SWD_TYPE)
     {
     case 0:
-        specswd_group_love();
+        specswd_group_love(imode);
         break;
     case 1:
-        specswd_group_rayl();
+        specswd_group_rayl(imode);
         break;
     default:
         break;
     }
 
     // allocate space
-    int nc = (HAS_ATT) ? cu_.size()  : u_.size();
-    const T *u_glob = nullptr;
     if constexpr (std::is_same_v<T,float>) {
-        u_glob = u_.data();
+        return u_[imode];
     }
     else {
-        u_glob = cu_.data();
+        return cu_[imode];
     }
-    if (max_order < 0 || max_order > nc ) {
-        max_order = nc;
-    }
-    u_out.resize({max_order});
-
-    // copy phase velocity to c_out
-    auto u = u_out.template mutable_unchecked<1>();
-    for(int ic = 0; ic < max_order; ic ++) {
-        u(ic) = u_glob[ic];
-    }
-
-    return u_out;
 }
 
 std::tuple<vec,vec>
 compute_phase_kl(int imode,bool HAS_ATT) 
 {
-    int nkers,nz;
-    specswd_kernel_size(&nkers,&nz);
+    int nz,nsize,nglob;
+    int nkers = specswd_kernel_size();
+    specswd_const(&nz,&nsize,&nglob);
+
     vec frekl_c({nkers,nz}),frekl_q;
     if(HAS_ATT) {
-        frekl_q.reshape({nkers,nz});
+        frekl_q.resize({nkers,nz});
     }
     else {
         frekl_q.resize({0,0});
@@ -180,11 +152,13 @@ compute_phase_kl(int imode,bool HAS_ATT)
 std::tuple<vec,vec>
 compute_group_kl(int imode,bool HAS_ATT) 
 {
-    int nkers,nz;
-    specswd_kernel_size(&nkers,&nz);
+    int nz,nsize,nglob;
+    int nkers = specswd_kernel_size();
+    specswd_const(&nz,&nsize,&nglob);
+
     vec frekl_c({nkers,nz}),frekl_q;
     if(HAS_ATT) {
-        frekl_q.reshape({nkers,nz});
+        frekl_q.resize({nkers,nz});
     }
     else {
         frekl_q.resize({0,0});
@@ -200,11 +174,48 @@ compute_group_kl(int imode,bool HAS_ATT)
     return std::make_tuple(frekl_c,frekl_q);
 }
 
+std::tuple<vec,vec>
+get_eigen(int imode,int return_left,int return_displ,
+          bool HAS_ATT)
+{
+    int nz,nsize,nglob;
+    specswd_const(&nz,&nsize,&nglob);
+    int ncomps = specswd_egn_size();
+
+    // init 
+    vec egn_r,egn_i;
+    if(return_displ) {
+        egn_r.resize({ncomps,nsize});
+        if(HAS_ATT) {
+            egn_i.resize({ncomps,nsize});
+        }
+    }
+    else {
+        egn_r.resize({nglob});
+        if(HAS_ATT) {
+            egn_i.resize({nglob});
+        }
+    }
+
+    // get eigenfunction
+    specswd_eigen(
+        imode,
+        egn_r.mutable_data(),
+        egn_i.mutable_data(),
+        return_left,
+        return_displ
+    );
+
+    return std::make_tuple(egn_r,egn_i);
+    
+}
+
 PYBIND11_MODULE(libswd,m){
     m.doc() = "Surface wave dispersion and sensivity kernel\n";
     m.def(
         "init_love",&init_love,arg("z"),arg("rho"),
-        arg("vsh"),arg("vsv"),arg("QN"),arg("QL"),
+        arg("vsh"),arg("vsv"),arg("QN"),
+        arg("QL"),
         arg("HAS_ATT") = false,
         arg("print_info") = false,
         "initialize global vars for love wave"
@@ -219,20 +230,23 @@ PYBIND11_MODULE(libswd,m){
           "initialize global vars for rayleigh wave");
     
     m.def("compute_egn",&compute_swd<float>,
-          arg("freq"),arg("max_order"),
+          arg("freq"),
+          arg("phi_in_deg") = 0.,
           arg("use_qz")=true,
           "compute dispersions for elastic wave");
 
     m.def("compute_egn_att",&compute_swd<std::complex<float>>,
-          arg("freq"),arg("max_order"),arg("use_qz")=true,
+          arg("freq"),
+          arg("phi_in_deg") = 0.,
+          arg("use_qz")=true,
           "compute dispersions for visco-elastic wave");
 
     m.def("group_vel",&compute_group_vel<float>,
-            arg("max_order"),
+            arg("imode"),
          "compute group velocity for elastic wave");
 
     m.def("group_vel_att",&compute_group_vel<std::complex<float>>,
-            arg("max_order"),
+            arg("imode"),
          "compute group velocity for visco-elastic wave");
     m.def(
         "phase_kl",&compute_phase_kl,
@@ -244,5 +258,13 @@ PYBIND11_MODULE(libswd,m){
         "group_kl",&compute_group_kl,
         arg("imode"),arg("HAS_ATT"),
         "compute groupvelocity sensitivity kernels"
+    );
+
+    m.def(
+        "get_egn",&get_eigen,
+        arg("imode"),arg("return_left"),
+        arg("return_displ"),
+        arg("HAS_ATT"),
+        "get eigenvectors"
     );
 }

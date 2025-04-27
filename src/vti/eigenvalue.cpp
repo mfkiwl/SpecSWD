@@ -53,7 +53,7 @@ compute_egn(const Mesh &mesh,
         );
     }
     else {
-        vsr.resize(ng,ng);
+        vsr = rmat2::Zero(ng,ng);
         schur_qz<realw,float>(
             A,B,k2_all,vsr.data(),nullptr,
             Qmat_,Zmat_,Smat_,Spmat_,
@@ -88,7 +88,6 @@ compute_egn(const Mesh &mesh,
         c[ic] = c_all[id];
     } 
 
-    // copy eigenvectors
     if (use_qz) {
         egn.resize(nc*ng);
         for(int ic = 0; ic < nc; ic ++) {
@@ -142,7 +141,7 @@ compute_egn_att(const Mesh &mesh,
     }
     else {
         crmat2 B = crmat2(K.cast<crealw>().asDiagonal());
-        vsr.resize(ng,ng);
+        vsr = crmat2::Zero(ng,ng);
         schur_qz<crealw,scmplx> (
             A,B,k,vsr.data(),nullptr,
             cQmat_,cZmat_,cSmat_,cSpmat_,
@@ -232,18 +231,31 @@ compute_egn(const Mesh &mesh,
         LAPACKE_REAL(ggev)(
             LAPACK_COL_MAJOR,'N','N',ng,A.data(),ng,B.data(),ng,
             k2_all.data(),ki.data(),beta.data(),nullptr,ng,
-            nullptr,ng);
+            nullptr,ng
+        );
         
         k2_all = k2_all / beta;
     }
     else {
-        vsr.resize(ng,ng);
-        vsl.resize(ng,ng);
+        vsr = rmat2::Zero(ng,ng);
+        vsl = rmat2::Zero(ng,ng);
         schur_qz<realw,float> (
             A,B,k2_all,vsr.data(),vsl.data(),
             Qmat_,Zmat_,Smat_,Spmat_,
             true
         );
+
+        // A = omega2 * rmat2(M.cast<realw>().asDiagonal()) - E.cast<realw>();
+        // B = K.cast<realw>();
+        // Eigen::ArrayX<realw> ki(ng),beta(ng);
+        // vsr = rmat2::Zero(ng,ng);
+        // vsl = rmat2::Zero(ng,ng);
+        // LAPACKE_sggev(
+        //     LAPACK_COL_MAJOR,'V','V',ng,A.data(),ng,B.data(),ng,
+        //     k2_all.data(),ki.data(),beta.data(),vsl.data(),ng,
+        //     vsr.data(),ng
+        // );
+        // k2_all = k2_all / beta;
     }
 
     //eigenvalue
@@ -337,8 +349,8 @@ compute_egn_att(const Mesh &mesh,
         k_all = k_all / beta;
     }
     else {
-        vsr.resize(ng,ng);
-        vsl.resize(ng,ng);
+        vsr = crmat2::Zero(ng,ng);
+        vsl = crmat2::Zero(ng,ng);
         schur_qz<crealw,scmplx> (
             A,B,k_all,vsr.data(),vsl.data(),
             cQmat_,cZmat_,cSmat_,cSpmat_,

@@ -20,10 +20,10 @@ class THSolver:
             density
         """
         # backup input params
-        self._thick = thick 
-        self._vp = vp 
-        self._vs = vs 
-        self._rho = rho
+        self._thick = thick.copy()
+        self._vp = vp.copy()
+        self._vs = vs.copy()
+        self._rho = rho.copy()
         self._spherical = spherical
     
     def compute_swd(self,wavetype:str,mode:int,T:np.ndarray) -> np.ndarray:

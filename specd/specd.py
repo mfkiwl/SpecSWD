@@ -66,26 +66,44 @@ class SpecWorkSpace:
         self._nz = len(z)
         assert(self._wavetype in ['love','rayl','aniso'])
 
-        _model_sanity_check(wavetype,vph,vpv,vsh,vsv,Qa,
-                            Qc,Qn,Ql,c21,nQani,Qani)
+        # check input models
+        _model_sanity_check(
+            wavetype,vph,vpv,vsh,vsv,Qa,
+            Qc,Qn,Ql,c21,nQani,Qani
+        )
         
         # init work space by calling libswd
         self._has_att = False
         if self._wavetype == "love":
             if (Qn is not None) and (Ql is not None):
                 self._has_att = True
-            libswd.init_love(z,rho,vsh,vsv,Qn,Ql,self._has_att,disp)
+                qn = Qn 
+                ql = Ql 
+            else:
+                # avoid pybind11 issue
+                qn = np.zeros((1),dtype='f4')
+                ql = np.zeros((1),dtype='f4')
+            libswd.init_love(z,rho,vsh,vsv,qn,ql,self._has_att,disp)
+            #libswd.init_love1(self._has_att,disp)
 
         elif self._wavetype == 'rayl':
             if (Qn is not None) and (Qa is not None) and (Qc is not None):
                 self._has_att = True
-            libswd.init_rayl(z,rho,vph,vpv,vsv,eta,Qa,Qc,Ql,
+                qa = Qa 
+                qc = Qc 
+                ql = Ql
+            else:
+                # avoid pybind11 issue
+                qc = np.zeros((1),dtype='f4')
+                qa = np.zeros((1),dtype='f4')
+                ql = np.zeros((1),dtype='f4')
+            libswd.init_rayl(z,rho,vph,vpv,vsv,eta,qa,qc,ql,
                             self._has_att,disp)
         else:
             print("not implemented!")
             assert(0 == 1)
 
-    def compute_egn(self,freq:float,max_order:int = -1,use_qz=True) -> np.ndarray:
+    def compute_egn(self,freq:float,ang_in_deg = 0.,only_phase=False) -> np.ndarray:
         """
         compute eigenvalues/eigenvectors
 
@@ -93,9 +111,9 @@ class SpecWorkSpace:
         ---------
         freq: float
             current frequency
-        max_order: int
-            no. of orders returns
-        use_qz: bool
+        ang_in_deg: float
+            phase velocity azimuthal angle, in deg
+        only_phase: bool
             if False, only compute eigenvalues (phase velocities)
             if True, phase velocities and eigenfunctions will be computed
 
@@ -106,30 +124,31 @@ class SpecWorkSpace:
         """
 
         # save use_qz
-        self._use_qz = use_qz
+        self._use_qz = (not only_phase)
+        self._angle = ang_in_deg
 
         if self._has_att:
-            c = libswd.compute_egn_att(freq,max_order,use_qz)
+            c = libswd.compute_egn_att(freq,ang_in_deg,self._use_qz)
         else:
-            c = libswd.compute_egn(freq,max_order,use_qz)
+            c = libswd.compute_egn(freq,ang_in_deg,self._use_qz)
 
         # save current mode number
         self._max_mode = len(c)
 
         return c
 
-    def group_velocity(self,max_order:int = -1) -> np.ndarray:
+    def group_velocity(self,imode:int):
         """
-        compute group velocites
+        compute group velocites at imode-th mode
 
         Parameters
         ----------
-        max_order: int
-            no. of orders returns
+        imode: int
+            which index to return
 
         Returns
         --------
-        u: np.ndarray
+        u: float/complex
             group velocities at current frequency
 
         Note
@@ -137,11 +156,14 @@ class SpecWorkSpace:
         before calling this routine, use_qz should be True in self.compute_egn
         """
         assert self._use_qz ,"please enable use_qz in self.compute_egn"
-
-        if self._has_att:
-            u = libswd.group_vel(max_order)
+        if(imode >= self._max_mode): 
+            print(f"imode should inside [0,{self._max_mode})")
+            exit(1)
+        
+        if not self._has_att:
+            u = libswd.group_vel(imode)
         else:
-            u = libswd.group_vel_att(max_order)
+            u = libswd.group_vel_att(imode)
 
         return u
         

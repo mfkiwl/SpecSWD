@@ -3,7 +3,7 @@
 
 namespace specswd {
 
-template<typename T = float>
+template<typename T = float >
 void egn2displ_love_(int nspec,const int *ibool_el,const T *egn, 
                     T * __restrict displ)
 {

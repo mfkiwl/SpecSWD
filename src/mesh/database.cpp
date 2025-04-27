@@ -281,7 +281,7 @@ create_db_rayl_()
         this -> interp_model(QA_tomo.data(),el_elmnts,xQA);
         this -> interp_model(QC_tomo.data(),ac_elmnts,xQk_ac);
 
-        nQmodel_ani = 3;
+        nQmodel_ani = 4;
     }
 }
 
