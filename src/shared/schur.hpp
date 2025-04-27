@@ -66,7 +66,7 @@ schur_qz(
     if(compute_left_egn) side = 'B';
 
     // run Qz
-    int sdim = 0,mm = ng;
+    int sdim = 0,m = ng;
     if constexpr (std::is_same_v<SAVETP,float>) { // save type is float
         // allocate eigenvectors
         Eigen::VectorX<COMMTP> alphai(ng);
@@ -82,7 +82,7 @@ schur_qz(
         LAPACKE_REAL(tgevc)(
             LAPACK_COL_MAJOR,side,'A',nullptr,
             ng,A.data(),ng,B.data(),ng,
-            vl,ng,vr,ng,ng,&mm
+            vl,ng,vr,ng,ng,&m
         );
     }
     else {
@@ -97,7 +97,7 @@ schur_qz(
         LAPACKE_CMPLX(tgevc)(
             LAPACK_COL_MAJOR,side,'A',nullptr,
             ng,(LCREALW*)A.data(),ng,(LCREALW*)B.data(),
-            ng,(LCREALW*)vl,ng,(LCREALW*)vr,ng,ng,&mm
+            ng,(LCREALW*)vl,ng,(LCREALW*)vr,ng,ng,&m
         );
     }
 

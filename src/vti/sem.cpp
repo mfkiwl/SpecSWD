@@ -95,6 +95,7 @@ void SolverLove::prepare_matrices(const Mesh &M)
     }
 }
 
+
 /**
  * @brief prepare M/K/E matrices for Love wave
  * 
@@ -270,14 +271,10 @@ prepare_rayl_(float freq,int nspec_el,int nspec_ac,
     for(int iface = 0; iface < nfaces_bdry; iface ++) {
         int ispec_ac = ispec_bdry[iface * 2 + 0];
         int ispec_el = ispec_bdry[iface * 2 + 1];
-        T norm = -1.;
-        int igll_el = 0;
-        int igll_ac = NGLL - 1;
-        if(!bdry_norm_direc[iface]) {
-            norm = 1.;
-            igll_ac = 0;
-            igll_el = NGLL - 1;
-        }
+        const char is_pos = bdry_norm_direc[iface];
+        T norm = is_pos ? -1 : 1.;
+        int igll_el = is_pos ? 0 : NGLL - 1;
+        int igll_ac = is_pos ? NGLL - 1 : 0;
 
         // get ac/el global loc
         int iglob_el = ibool_el[ispec_el * NGLL + igll_el];
@@ -332,6 +329,5 @@ void SolverRayl::prepare_matrices(const Mesh &M)
     }
 
 }
-
     
 } // namespace specswd

@@ -61,7 +61,7 @@ compute_egn(const Mesh &mesh,
     }
     else {
         Eigen::ArrayX<crealw> k2_all(ng*2);
-        vsr.resize(ng*2,ng*2);
+        vsr = crmat2::Zero(ng*2,ng*2);
         schur_qz<crealw,scmplx>(
             A,B,k2_all,vsr.data(),nullptr,
             cQmat_,cZmat_,cSmat_,cSpmat_,
@@ -163,8 +163,8 @@ compute_egn_att(const Mesh &mesh,
         k_all = k_all / beta;
     }
     else {
-        vsr.resize(ng*2,ng*2);
-        vsl.resize(ng*2,ng*2);
+        vsr = crmat2::Zero(ng*2,ng*2);
+        vsl = crmat2::Zero(ng*2,ng*2);
         schur_qz<crealw,scmplx>(
             A,B,k_all,vsr.data(),nullptr,
             cQmat_,cZmat_,cSmat_,cSpmat_,

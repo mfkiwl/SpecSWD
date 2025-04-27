@@ -81,7 +81,7 @@ interp_model(const float *param,const std::vector<int> &elmnts,std::vector<float
 /**
  * @brief project kernels to original 1-D model
  * @param frekl derivatives, shape(nspec*NGLL+NGRL)
- * @param kl_out derivatives on original 1-Dmodel, shape(nz_)
+ * @param kl_out derivatives on original 1-Dmodel, shape(nz_tomo)
  */
 void Mesh:: 
 project_kl(const float *frekl, float *kl_out) const
